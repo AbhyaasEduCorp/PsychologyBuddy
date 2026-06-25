@@ -5,8 +5,7 @@ import { ApiResponse } from '@/src/utils/api-response';
 import { handleError } from '@/src/utils/errors';
 import { getSession, requireRole } from '@/src/utils/session-helper';
 import { StreakService } from '../services/streak.service';
-import { ChallengeProgressService } from '@/src/services/challenges/challenge-progress.service';
-import { ModuleType } from '@/src/services/challenges/types/challenge.types';
+import { ActivityTracker } from '@/src/services/challenges/activity-tracker';
 
 export class JournalingStudentController {
   // GET /api/student/journaling/config
@@ -61,17 +60,7 @@ export class JournalingStudentController {
 
       // Update challenge progress for journaling activity
       try {
-        await ChallengeProgressService.processActivityEvent({
-          userId: session.userId,
-          moduleType: ModuleType.JOURNALING,
-          action: 'entry_created',
-          value: 1,
-          metadata: {
-            entryType: 'write',
-            wordCount: parsed.content?.length || 0
-          },
-          timestamp: new Date()
-        });
+        await ActivityTracker.trackJournalingEntry(session.userId, 'write');
       } catch (challengeError) {
         console.error('Failed to update challenge progress after writing journal:', challengeError);
       }
@@ -161,17 +150,7 @@ export class JournalingStudentController {
 
       // Update challenge progress for journaling activity
       try {
-        await ChallengeProgressService.processActivityEvent({
-          userId: session.userId,
-          moduleType: ModuleType.JOURNALING,
-          action: 'audio_created',
-          value: 1,
-          metadata: {
-            entryType: 'audio',
-            duration: duration
-          },
-          timestamp: new Date()
-        });
+        await ActivityTracker.trackJournalingEntry(session.userId, 'audio');
       } catch (challengeError) {
         console.error('Failed to update challenge progress after audio journal:', challengeError);
       }
@@ -253,16 +232,7 @@ export class JournalingStudentController {
 
       // Update challenge progress for journaling activity
       try {
-        await ChallengeProgressService.processActivityEvent({
-          userId: session.userId,
-          moduleType: ModuleType.JOURNALING,
-          action: 'art_created',
-          value: 1,
-          metadata: {
-            entryType: 'art'
-          },
-          timestamp: new Date()
-        });
+        await ActivityTracker.trackJournalingEntry(session.userId, 'art');
       } catch (challengeError) {
         console.error('Failed to update challenge progress after art journal:', challengeError);
       }

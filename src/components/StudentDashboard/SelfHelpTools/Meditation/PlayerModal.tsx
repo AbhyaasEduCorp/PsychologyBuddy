@@ -18,6 +18,7 @@ export const PlayerModal = ({ card, onClose }: PlayerModalProps) => {
   const [progress, setProgress] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
+  const [hasTrackedCompletion, setHasTrackedCompletion] = useState(false);
 
   /* --------------------------------------------
     MEDIA EVENTS (AUDIO/VIDEO)
@@ -33,15 +34,52 @@ export const PlayerModal = ({ card, onClose }: PlayerModalProps) => {
       }
     };
     const loadMeta = () => setDuration(media.duration);
+    
+    const handleEnded = async () => {
+      if (hasTrackedCompletion) return;
+      
+      try {
+        console.log('[Meditation] Video ended, tracking completion...', { 
+          meditationId: card.id, 
+          duration: Math.floor(media.duration) 
+        });
+        
+        // Track meditation completion via API endpoint
+        const response = await fetch('/api/student/challenges/track', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            type: 'meditation',
+            itemId: card.id,
+            duration: Math.floor(media.duration)
+          })
+        });
+
+        if (!response.ok) {
+          const error = await response.json();
+          console.error('[Meditation] Failed to track completion:', error);
+        } else {
+          const result = await response.json();
+          console.log('[Meditation] Successfully tracked completion:', result);
+          setHasTrackedCompletion(true);
+        }
+      } catch (error) {
+        console.error('[Meditation] Failed to track meditation completion:', error);
+      }
+    };
 
     media.addEventListener("timeupdate", updateProgress);
     media.addEventListener("loadedmetadata", loadMeta);
+    media.addEventListener("ended", handleEnded);
 
     return () => {
       media.removeEventListener("timeupdate", updateProgress);
       media.removeEventListener("loadedmetadata", loadMeta);
+      media.removeEventListener("ended", handleEnded);
     };
-  }, [card.type]);
+  }, [card.type, card.id, hasTrackedCompletion]);
 
   const togglePlayPause = () => {
     const media = mediaRef.current;

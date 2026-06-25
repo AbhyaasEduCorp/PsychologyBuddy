@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import prisma from "@/src/prisma";
 import OpenAI from "openai";
 import { OPENING_MESSAGE_PROMPTS } from "@/src/lib/ai/prompts/system-prompt";
+import { SummaryService } from "@/src/services/chats/summaryService";
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY!,
@@ -52,6 +53,14 @@ export async function POST(req: Request) {
       console.log(`Created development student: ${studentId}`);
     }
 
+    // Generate summaries for any expired sessions that the client never terminated
+    // (e.g. student closed the browser before the auto-termination timer fired)
+    try {
+      await SummaryService.generateExpiredSessionSummaries(student.id);
+    } catch (expiredErr) {
+      console.error('Failed to generate expired session summaries:', expiredErr);
+    }
+
     // Check for previous conversations
     const previousSummaries = await prisma.summary.findMany({
       where: { userId: student.id },
@@ -98,7 +107,7 @@ export async function POST(req: Request) {
     while (retryCount < maxRetries) {
       try {
         const response = await openai.chat.completions.create({
-          model: "gpt-3.5-turbo",
+          model: "gpt-3.5-turbo-16k", // Using 16k model for comprehensive system prompt
           messages: [
             {
               role: "user",

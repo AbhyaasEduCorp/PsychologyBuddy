@@ -14,6 +14,86 @@ To democratize mental health support by providing students with:
 
 ---
 
+## 🧩 Emotional Quotient (EQ) & Social Emotional Learning (SEL)
+
+Psychology Buddy is purpose-built to develop the five CASEL SEL competencies in every student interaction.
+
+---
+
+### What is SEL and Why It Matters
+
+**Social Emotional Learning (SEL)** is the process through which students acquire and apply the skills, attitudes, and knowledge necessary to manage emotions, build healthy relationships, and make responsible decisions. Strong SEL outcomes are directly linked to improved academic performance, reduced behavioural issues, and lifelong mental health resilience.
+
+**Emotional Quotient (EQ)** — the ability to identify, understand, regulate, and express emotions — is the measurable outcome of effective SEL. Psychology Buddy treats EQ development not as a standalone feature but as the design principle behind every tool on the platform.
+
+---
+
+### How the Platform Develops Each SEL Competency
+
+#### 1. 🪞 Self-Awareness
+> *Recognising one's own emotions, thoughts, and values.*
+
+- **Mood Check-In** — Students log their daily emotional state, building the habit of pausing and naming how they feel.
+- **Emotional Patterns Dashboard** — A visual pie chart surfaces which emotional triggers (stress, loneliness, anger, etc.) appear most often over the month, paired with personalised monthly insights and recommendations.
+- **Journaling (Writing, Audio, Art)** — Three expression modalities accommodate different learning styles; each prompts inward reflection and pattern recognition.
+- **AI Sentiment Classifier** — Every chat message is silently classified across seven emotion categories (anxiety, depression, stress, anger, loneliness, fear, joy) so that Buddy's responses always match the student's actual emotional state rather than the surface topic.
+
+#### 2. 🎛️ Self-Management
+> *Regulating emotions and behaviours to achieve goals.*
+
+- **Meditation Tools** — Guided sessions and breathing exercises build the physiological regulation skills that underpin emotional control.
+- **Music Therapy** — Mood-based playlists provide an evidence-backed tool for shifting emotional states.
+- **Streaks & Badges** — Daily engagement tracking reinforces self-discipline. Students who consistently use coping tools are recognised with achievement badges, making self-regulation intrinsically rewarding.
+- **Buddy's Conversational Design** — The AI is explicitly trained NOT to loop on validation. It moves conversations from "feeling stuck" to active exploration and coping — modelling the self-management loop of awareness → reflection → forward action.
+
+#### 3. 🌐 Social Awareness
+> *Understanding the perspectives and empathy for others.*
+
+- **Psychoeducation Library** — Articles on anxiety, depression, peer pressure, family dynamics, and social communication build conceptual understanding of why people (including the student themselves) behave and feel the way they do.
+- **AI Empathy Checks** — Every AI response is validated by a safety guardrail that verifies the response contains genuine empathy signals before delivery, ensuring students are consistently modelled what caring, non-judgmental communication looks like.
+- **Third-Party Safety Rule** — When a student reports concern for a friend, Buddy treats it as a real safety matter. This teaches students to take others' emotional struggles seriously — a direct SEL social-awareness outcome.
+
+#### 4. 🤝 Relationship Skills
+> *Communicating, cooperating, and seeking help effectively.*
+
+- **Chat with Buddy** — Every session models healthy communication: the AI uses curiosity, observation, and gentle challenge instead of interrogation, teaching students what a supportive conversation actually looks and feels like.
+- **Dependency Prevention Policy** — Buddy actively redirects students toward school counsellors, trusted adults, and real-world relationships rather than fostering reliance on the AI. Students learn that seeking human support is a strength, not a weakness.
+- **Escalation Pathway** — The multi-level escalation system (AI detection → counsellor alert → email notification) ensures students experience that help-seeking is responded to promptly and compassionately, reinforcing the belief that relationships are safe.
+
+#### 5. ⚖️ Responsible Decision-Making
+> *Making constructive choices about personal and social behaviour.*
+
+- **Student Safety Policy** — A comprehensive, content-based classification system (Green / Yellow / Red) guides the AI to support students in emotionally complex situations while blocking age-inappropriate instructional content, modelling how to distinguish safe from unsafe choices.
+- **Crisis Safety Override** — When high-risk language is detected, the AI de-prioritises all other goals and focuses entirely on safety — demonstrating that some decisions are non-negotiable.
+- **Age-Appropriate Boundaries** — By refusing to give adult procedural advice (substances, adult content, complex financial decisions) while still honouring the emotional experience behind the question, the platform consistently reinforces healthy boundaries and age-appropriate judgement.
+
+---
+
+### EQ Measurement Through the Platform
+
+| EQ Dimension | Platform Signal |
+|---|---|
+| Emotional Identification | Mood check-in frequency and label diversity |
+| Emotional Regulation | Meditation / music session usage after negative mood logs |
+| Self-Reflection | Journal entry frequency and length |
+| Stress Tolerance | Streak consistency during high-stress academic periods |
+| Crisis Awareness | Escalation detection rate and counsellor response speed |
+| Help-Seeking | Chat session initiation after negative mood events |
+
+Administrators can observe these signals through the platform analytics dashboard to track EQ development trends across their student population and identify students who may need additional support.
+
+---
+
+### Design Principle
+
+Every Psychology Buddy feature asks the same question before release:
+
+> *"Does this help a student understand themselves better, regulate their emotions more effectively, or build stronger, healthier relationships?"*
+
+If the answer is no, it does not belong on the platform.
+
+---
+
 ## 🏗️ System Architecture
 
 ### **Technology Stack**

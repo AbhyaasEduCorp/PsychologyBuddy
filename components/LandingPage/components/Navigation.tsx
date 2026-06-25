@@ -11,13 +11,52 @@ const Navigation: React.FC = () => {
   const { user, loading, refreshUser } = useAuth();
   const [open, setOpen] = useState(false);
 
+  const getProfileImage = () => {
+    if (!user) return null;
+    return (
+      user.studentProfile?.profileImage ||
+      user.adminProfile?.profileImageUrl ||
+      user.counselorProfile?.profileImageUrl ||
+      null
+    );
+  };
+
   const handleGetStarted = async () => {
     // If user is already logged in, redirect to their dashboard
     if (!loading && user) {
+      // Special handling for students - check mood check-in status
+      if (user.role.name === 'STUDENT') {
+        try {
+          // Check if student has completed mood check-in today
+          const response = await fetch('/api/students/mood/checkin/today', {
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            credentials: 'include',
+          });
+          
+          if (response.ok) {
+            const data = await response.json();
+            const actualData = data.data || data;
+            
+            // If they haven't checked in today, redirect to mood check-in
+            if (!actualData.hasCheckin) {
+              router.push('/students/mood-checkin');
+              return;
+            }
+          }
+        } catch (error) {
+          console.error('Error checking mood check-in status:', error);
+          // Continue to dashboard even if check fails
+        }
+        
+        // If they've checked in or check failed, go to dashboard
+        router.push('/students');
+        return;
+      }
+      
+      // Handle other user roles
       switch (user.role.name) {
-        case 'STUDENT':
-          router.push('/students');
-          break;
         case 'COUNSELOR':
           router.push('/counselor');
           break;
@@ -40,10 +79,39 @@ const Navigation: React.FC = () => {
       // Check again after refresh
       const updatedUser = await fetch('/api/auth/me').then(res => res.json()).then(data => data.data?.user).catch(() => null);
       if (updatedUser) {
+        // Special handling for students - check mood check-in status
+        if (updatedUser.role.name === 'STUDENT') {
+          try {
+            // Check if student has completed mood check-in today
+            const response = await fetch('/api/students/mood/checkin/today', {
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              credentials: 'include',
+            });
+            
+            if (response.ok) {
+              const data = await response.json();
+              const actualData = data.data || data;
+              
+              // If they haven't checked in today, redirect to mood check-in
+              if (!actualData.hasCheckin) {
+                router.push('/students/mood-checkin');
+                return;
+              }
+            }
+          } catch (error) {
+            console.error('Error checking mood check-in status:', error);
+            // Continue to dashboard even if check fails
+          }
+          
+          // If they've checked in or check failed, go to dashboard
+          router.push('/students');
+          return;
+        }
+        
+        // Handle other user roles
         switch (updatedUser.role.name) {
-          case 'STUDENT':
-            router.push('/students');
-            break;
           case 'COUNSELOR':
             router.push('/counselor');
             break;
@@ -109,23 +177,57 @@ const Navigation: React.FC = () => {
         {/* Actions (Desktop: CTA, Mobile: Hamburger) */}
         <div className="flex items-center gap-3">
           {/* CTA Button - Desktop only */}
-          <Button
-            onClick={handleGetStarted}
-            className="
-              hidden sm:inline-flex
-              bg-gradient-to-b from-[#4FC1F9] to-[#1B9EE0]
-              text-[15px] text-white
-              px-[16px] py-[6px]
-              h-auto ml-5
-              rounded-[24px]
-              font-medium
-              hover:bg-[#1588c2]
-              transition-all duration-200
-              shadow-md hover:shadow-lg
-            "
-          >
-            Lets Started
-          </Button>
+          {!loading && user ? (
+            // Show standalone avatar for logged-in users
+            <button
+              onClick={handleGetStarted}
+              title={`${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Go to Dashboard'}
+              className="hidden sm:flex items-center gap-2.5 ml-5 group"
+            >
+              <div className="w-9 h-9 rounded-full overflow-hidden ring-2 ring-[#1B9EE0]/60 ring-offset-1 ring-offset-white/40 shadow-md group-hover:ring-[#1B9EE0] transition-all duration-200 bg-gradient-to-b from-[#4FC1F9] to-[#1B9EE0] flex items-center justify-center">
+                {getProfileImage() ? (
+                  <Image
+                    src={getProfileImage()!}
+                    alt={`${user.firstName || 'User'}'s avatar`}
+                    width={36}
+                    height={36}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <span className="text-sm font-bold text-white">
+                    {user.firstName?.[0]?.toUpperCase() || 'U'}
+                  </span>
+                )}
+              </div>
+              <div className="max-w-0 overflow-hidden opacity-0 group-hover:max-w-[160px] group-hover:opacity-100 transition-all duration-300 ease-in-out flex flex-col items-start leading-tight whitespace-nowrap">
+                <span className="text-[13px] font-semibold text-[#01243C] group-hover:text-[#1B9EE0] transition-colors duration-200">
+                  {user.firstName || 'User'}
+                </span>
+                <span className="text-[11px] text-[#01243C]/50">
+                  {user.role?.name?.replace(/_/g, ' ') || 'Dashboard'}
+                </span>
+              </div>
+            </button>
+          ) : (
+            // Show "Let's Started" if not logged in
+            <Button
+              onClick={handleGetStarted}
+              className="
+                hidden sm:inline-flex
+                bg-gradient-to-b from-[#4FC1F9] to-[#1B9EE0]
+                text-[15px] text-white
+                px-[16px] py-[6px]
+                h-auto ml-5
+                rounded-[24px]
+                font-medium
+                hover:bg-[#1588c2]
+                transition-all duration-200
+                shadow-md hover:shadow-lg
+              "
+            >
+              Lets Started
+            </Button>
+          )}
 
           {/* Hamburger Menu - Mobile only */}
           <button
@@ -180,24 +282,55 @@ const Navigation: React.FC = () => {
           </ul>
 
           {/* CTA Button on Mobile */}
-          <Button
-            onClick={() => {
-              setOpen(false);
-              handleGetStarted();
-            }}
-            className="
-              w-full
-              bg-gradient-to-b from-[#4FC1F9] to-[#1B9EE0]
-              text-[15px] text-white
-              py-2.5
-              h-auto
-              rounded-[24px]
-              font-medium
-              shadow-md
-            "
-          >
-            Lets Started
-          </Button>
+          {!loading && user ? (
+            <button
+              onClick={() => { setOpen(false); handleGetStarted(); }}
+              className="w-full flex items-center gap-3 p-3 rounded-2xl bg-gradient-to-r from-[#4FC1F9]/10 to-[#1B9EE0]/10 border border-[#1B9EE0]/20 hover:border-[#1B9EE0]/50 transition-all duration-200"
+            >
+              <div className="w-10 h-10 rounded-full overflow-hidden ring-2 ring-[#1B9EE0]/60 shadow-sm bg-gradient-to-b from-[#4FC1F9] to-[#1B9EE0] flex items-center justify-center flex-shrink-0">
+                {getProfileImage() ? (
+                  <Image
+                    src={getProfileImage()!}
+                    alt={`${user.firstName || 'User'}'s avatar`}
+                    width={40}
+                    height={40}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <span className="text-sm font-bold text-white">
+                    {user.firstName?.[0]?.toUpperCase() || 'U'}
+                  </span>
+                )}
+              </div>
+              <div className="flex flex-col items-start leading-tight">
+                <span className="text-[14px] font-semibold text-[#01243C]">
+                  {`${user.firstName || ''} ${user.lastName || ''}`.trim() || 'User'}
+                </span>
+                <span className="text-[12px] text-[#1B9EE0] font-medium">
+                  Go to Dashboard →
+                </span>
+              </div>
+            </button>
+          ) : (
+            <Button
+              onClick={() => {
+                setOpen(false);
+                handleGetStarted();
+              }}
+              className="
+                w-full
+                bg-gradient-to-b from-[#4FC1F9] to-[#1B9EE0]
+                text-[15px] text-white
+                py-2.5
+                h-auto
+                rounded-[24px]
+                font-medium
+                shadow-md
+              "
+            >
+              Lets Started
+            </Button>
+          )}
         </div>
       )}
     </nav>

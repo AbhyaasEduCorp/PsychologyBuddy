@@ -77,11 +77,12 @@ model User {
 }
 
 model StudentProfile {
-  id           String  @id @default(uuid())
-  userId       String  @unique
-  profileImage String?
-  status       String  @default("ACTIVE")
-  user         User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id                String   @id @default(uuid())
+  userId            String   @unique
+  profileImage      String?
+  status            String   @default("ACTIVE")
+  emergencyContact  Json?
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("StudentProfiles")
 }
@@ -1055,10 +1056,9 @@ model UserChallenge {
   assignedAt         DateTime            @default(now())
   startedAt          DateTime?
   completedAt        DateTime?
-  status             String              @default("ASSIGNED")
+  status             UserChallengeStatus @default(ASSIGNED)
   progressPercentage Int                 @default(0)
   lastActivityAt     DateTime?
-  challengeStatus    UserChallengeStatus @default(NOT_STARTED)
   createdAt          DateTime            @default(now())
   currentProgress    Int                 @default(0)
   updatedAt          DateTime            @updatedAt
@@ -1279,6 +1279,7 @@ enum Difficulty {
 }
 
 enum UserChallengeStatus {
+  ASSIGNED
   NOT_STARTED
   IN_PROGRESS
   COMPLETED

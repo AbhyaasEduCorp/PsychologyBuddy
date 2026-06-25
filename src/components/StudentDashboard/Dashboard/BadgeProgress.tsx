@@ -180,7 +180,7 @@ export default function BadgeProgress() {
           <p className="text-[14px] sm:text-[15px] md:text-[16px] text-[#767676] -mt-4 sm:-mt-6 ml-12 sm:ml-14 mb-2">{title}</p>
 
           {/* PROGRESS BAR */}
-          <div className="w-full sm:w-[400px] md:w-[485px] bg-[#C6DDFC] rounded-full h-[12px] sm:h-[14px] overflow-hidden mt-6 sm:mt-8 mb-2">
+          <div className="w-full max-w-[485px] bg-[#C6DDFC] rounded-full h-[12px] sm:h-[14px] overflow-hidden mt-6 sm:mt-8 mb-2">
             <div
               className={`h-full ${
                 displayValue === 100 ? "bg-green-500" : "bg-[#4293FE]"

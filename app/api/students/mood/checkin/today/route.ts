@@ -1,30 +1,40 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { DatabaseService } from "@/src/lib/database/database-service";
-import { createAPIHandler } from "@/src/lib/create-api-handler";
+import { getSession } from "@/src/utils/session-helper";
+import { handleError } from "@/src/utils/errors";
 
-export const GET = createAPIHandler.get(
-  async (params, context) => {
-    // Use the authenticated user's ID instead of requiring studentId parameter
-    const userId = context.id;
+export async function GET(req: NextRequest) {
+  try {
+    // Get session without requiring specific permission - students can always check their own status
+    const session = await getSession(req);
+    
+    if (!session) {
+      return NextResponse.json(
+        { success: false, error: "Authentication required" },
+        { status: 401 }
+      );
+    }
+    
+    const userId = session.userId;
     
     // Get today's mood checkin for the user
-    const today = new Date();
-    today.setHours(0, 0, 0, 0); // Start of today
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1); // Start of tomorrow
-
     const moodCheckin = await DatabaseService.getTodayMoodCheckin(userId);
 
-    return {
-      hasCheckin: !!moodCheckin,
-      moodCheckin: moodCheckin ? {
-        id: moodCheckin.id,
-        mood: moodCheckin.mood,
-        notes: moodCheckin.notes,
-        createdAt: moodCheckin.createdAt
-      } : null
-    };
-  },
-  { requireAuth: true }
-);
+    return NextResponse.json({
+      success: true,
+      data: {
+        hasCheckin: !!moodCheckin,
+        moodCheckin: moodCheckin ? {
+          id: moodCheckin.id,
+          mood: moodCheckin.mood,
+          notes: moodCheckin.notes,
+          createdAt: moodCheckin.createdAt
+        } : null
+      }
+    });
+  } catch (err) {
+    const errorResponse = handleError(err);
+    return NextResponse.json(errorResponse, { status: errorResponse.error?.code || 500 });
+  }
+}
 

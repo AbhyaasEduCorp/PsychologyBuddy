@@ -46,14 +46,21 @@ export function countMessageTokens(messages: ChatMessage[]): number {
 }
 
 /**
- * Default context window configuration for GPT-3.5-turbo
- * GPT-3.5-turbo has a 4K token context window
+ * Default context window configuration for GPT-3.5-turbo-16k
+ * GPT-3.5-turbo-16k has a 16K token context window
  * We reserve tokens for the system prompt and response generation
+ * 
+ * With comprehensive system prompt (~10K tokens) and 50 message history,
+ * the 16K context window provides enough space for:
+ * - 10K tokens: System prompt
+ * - 4K tokens: ~50 messages of conversation history
+ * - 1K tokens: Current user message
+ * - 1K tokens: AI response generation
  */
 export const DEFAULT_CONTEXT_CONFIG: ContextWindowConfig = {
-  maxTokens: 4000,
-  systemPromptTokens: 500, // Estimated tokens for system prompt
-  reserveTokens: 500, // Reserve for AI response generation
+  maxTokens: 16000,  // GPT-3.5-turbo-16k context window
+  systemPromptTokens: 10000, // Comprehensive system prompt with all guidelines
+  reserveTokens: 1000, // Reserve for AI response generation
 };
 
 /**

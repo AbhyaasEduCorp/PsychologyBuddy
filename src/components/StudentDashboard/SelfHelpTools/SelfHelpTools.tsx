@@ -79,7 +79,7 @@ export default function SelfHelpCardsExact() {
         </div>
 
         {/* Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8 md:gap-10">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-6 sm:gap-8 md:gap-4">
           {cards.map((card) => {
             const Icon = card.icon;
 
@@ -87,8 +87,8 @@ export default function SelfHelpCardsExact() {
               <div
                 key={card.id}
                 className={`
-                  w-full max-w-[379px] mx-auto sm:w-auto sm:max-w-none h-auto sm:h-[400px] md:h-[431px]
-                  rounded-[12px] sm:rounded-[15px] p-4 sm:p-5 md:p-6 lg:p-7 relative overflow-hidden
+                  w-full max-w-[379px] mx-auto sm:w-auto sm:max-w-none h-auto sm:h-[400px] 
+                  rounded-[12px] sm:rounded-[15px] p-4 sm:p-5 md:p-5 lg:p-7 relative overflow-hidden
                   bg-gradient-to-b ${card.gradient}
                   border-2 border-white
                   drop-shadow-xl shadow-[#2424241A] inset-shadow-xl inset-shadow-[#2424241A]-500/50 hover:shadow-md hover:scale-[1.02] transition-all 
@@ -108,7 +108,7 @@ export default function SelfHelpCardsExact() {
                     <img
                       src={card.image}
                       alt={card.title}
-                      className="h-[50px] sm:h-[60px] md:h-[71px] w-[52px] sm:w-[62px] md:w-[73px]"
+                      className="h-[50px] sm:h-[60px] md:h-[51px] w-[52px] sm:w-[62px] md:w-[73px]"
                       onError={(e) => {
                         // Fallback to a placeholder if image fails to load
                         const target = e.target as HTMLImageElement;
@@ -118,12 +118,12 @@ export default function SelfHelpCardsExact() {
                   </div>
 
                   {/* Title */}
-                  <h2 className="text-lg sm:text-xl md:text-[20px] font-semibold text-[#2F3D43] mt-3 sm:mt-4 md:mt-5">
+                  <h2 className="text-lg sm:text-xl md:text-[18px] font-semibold text-[#2F3D43] mt-3 sm:mt-4 md:mt-5">
                     {card.title}
                   </h2>
 
                   {/* Description */}
-                  <p className="text-[#767676] text-sm sm:text-base md:text-[16px] mt-1.5 sm:mt-2">
+                  <p className="text-[#767676] text-sm sm:text-base md:text-[13px] mt-1.5 sm:mt-2">
                     {card.description}
                   </p>
 
@@ -132,7 +132,7 @@ export default function SelfHelpCardsExact() {
                     <p className="text-sm sm:text-base md:text-[16px] font-semibold text-[#2F3D43] mb-1.5 sm:mb-2">
                       Benefits
                     </p>
-                    <ul className="space-y-1.5 sm:space-y-2 text-xs sm:text-sm md:text-[14px] text-[#767676]">
+                    <ul className="space-y-1.5 sm:space-y-2 text-xs sm:text-sm md:text-[13px] text-[#767676]">
                       {card.benefits.map((b) => (
                         <li key={b} className="flex items-center gap-2">
                           <span
@@ -150,7 +150,7 @@ export default function SelfHelpCardsExact() {
                       router.push(`/students/selfhelptools/${card.id}`)
                     }
                     className={`
-                      mt-5 sm:mt-6 md:mt-8 w-full py-2.5 sm:py-3 text-sm sm:text-base md:text-[16px] font-medium rounded-full text-white
+                      mt-5 sm:mt-6 md:mt-6 w-full py-2.5 sm:py-3 text-sm sm:text-base md:text-[14px] font-medium rounded-full text-white
                       bg-gradient-to-r ${card.cta}
                       shadow-md hover:shadow-lg transition-all cursor-pointer
                     `}

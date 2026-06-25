@@ -230,10 +230,18 @@ export function ChallengesView() {
         ];
         
         // Transform to the expected format
+        console.log('Active challenges sample:', allActive.length > 0 ? {
+          challengeName: allActive[0].challenge?.name,
+          createdBy: allActive[0].challenge?.createdBy,
+          creator: allActive[0].challenge?.creator,
+          hasCreator: !!allActive[0].challenge?.creator
+        } : 'No active challenges');
+        
         const transformedActive = allActive.map((uc: any) => ({
           id: uc.challenge.id,
           title: uc.challenge.name,
           description: uc.challenge.description,
+          instructions: uc.challenge.instructions || '',
           category: uc.challenge.category || 'General',
           progress: uc.progressPercentage || 0,
           startDate: uc.assignedAt,
@@ -245,13 +253,15 @@ export function ChallengesView() {
           targetValue: uc.challenge.targetValue || 1,
           targetUnit: uc.challenge.targetUnit || 'ENTRIES',
           rewardPoints: uc.challenge.rewardPoints || 10,
-          difficulty: uc.challenge.difficulty || 'BEGINNER'
+          difficulty: uc.challenge.difficulty || 'BEGINNER',
+          createdBy: uc.challenge.creator ? `${uc.challenge.creator.firstName} ${uc.challenge.creator.lastName}` : 'Admin'
         }));
         
         const transformedCompleted = allCompleted.map((uc: any) => ({
           id: uc.challenge.id,
           title: uc.challenge.name,
           description: uc.challenge.description,
+          instructions: uc.challenge.instructions || '',
           category: uc.challenge.category || 'General',
           completedOn: uc.completedAt,
           tone: getCategoryTone(uc.challenge.category),
@@ -260,7 +270,8 @@ export function ChallengesView() {
           targetValue: uc.challenge.targetValue || 1,
           targetUnit: uc.challenge.targetUnit || 'ENTRIES',
           rewardPoints: uc.challenge.rewardPoints || 10,
-          difficulty: uc.challenge.difficulty || 'BEGINNER'
+          difficulty: uc.challenge.difficulty || 'BEGINNER',
+          createdBy: uc.challenge.creator ? `${uc.challenge.creator.firstName} ${uc.challenge.creator.lastName}` : 'Admin'
         }));
         
         // Deduplicate challenges by ID to prevent duplicate key errors
@@ -391,12 +402,8 @@ export function ChallengesView() {
             <Trophy className="h-8 w-8 text-[#64748B]" />
           </div>
           <h3 className="text-lg font-semibold text-[#1E293B] mb-2">No Challenges Yet</h3>
-          <p className="text-[#64748B]">
-            Start your first challenge to begin tracking your progress and earning badges!
-          </p>
-          <Button className="mt-4 bg-[#3B82F6] text-white hover:bg-[#3B82F6]/90">
-            Browse Challenges
-          </Button>
+          
+          
         </div>
       )}
 
@@ -419,7 +426,7 @@ export function ChallengesView() {
                 onClick={() => setIsModalOpen(false)}
                 className="p-1.5 hover:bg-muted rounded-full transition-colors"
               >
-                <X className="h-5 w-5 text-muted-foreground" />
+                {/* <X className="h-5 w-5 text-muted-foreground" /> */}
               </button>
             </div>
 

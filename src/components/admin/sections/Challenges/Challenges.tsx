@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, MoreVertical, Eye, UserPlus, Trophy, CalendarDays, Users } from "lucide-react";
+import { Plus, MoreVertical, Eye, UserPlus, Trophy, CalendarDays, Users, UserRoundPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -30,6 +30,9 @@ interface Challenge {
   assignmentType: "INDIVIDUAL" | "CLASS" | "SCHOOL";
   isActive: boolean;
   participantCount: number;
+  completedCount: number;
+  inProgressCount: number;
+  progressPercentage: number;
   createdBy: string;
   creatorRole: string;
   schoolId: string;
@@ -65,6 +68,14 @@ async function fetchChallenges(): Promise<Challenge[]> {
     const mappedChallenges = data.data.map((challenge: any) => {
       console.log('Admin - Mapping challenge:', challenge);
       
+      // Calculate real progress from user challenges
+      const totalAssigned = challenge._count?.userChallenges || 0;
+      const completedCount = challenge.userChallenges?.filter((uc: any) => uc.status === 'COMPLETED').length || 0;
+      const inProgressCount = challenge.userChallenges?.filter((uc: any) => uc.status === 'IN_PROGRESS').length || 0;
+      
+      // Calculate total progress (completed assignments)
+      const progressPercentage = totalAssigned > 0 ? Math.round((completedCount / totalAssigned) * 100) : 0;
+      
       return {
         ...challenge,
         title: challenge.name,
@@ -75,9 +86,10 @@ async function fetchChallenges(): Promise<Challenge[]> {
         creatorRole: challenge.creator?.role?.name || 'Admin',
         schoolId: challenge.schoolId,
         schoolName: challenge.school?.name || 'Unknown School',
-        participantCount: challenge._count?.userChallenges || 0,
-        completed: challenge.participantCount || 0,
-        total: 96, // Default total
+        participantCount: totalAssigned,
+        completedCount: completedCount,
+        inProgressCount: inProgressCount,
+        progressPercentage: progressPercentage,
       };
     });
     
@@ -89,19 +101,37 @@ async function fetchChallenges(): Promise<Challenge[]> {
   }
 }
 
-function ChallengeCard({ challenge, onAssign, onDetails }: { challenge: Challenge; onAssign: (challenge: Challenge) => void; onDetails: (challenge: Challenge) => void }) {
+function ChallengeCard({ challenge, onAssign, onDetails, onDelete }: { 
+  challenge: Challenge; 
+  onAssign: (challenge: Challenge) => void; 
+  onDetails: (challenge: Challenge) => void;
+  onDelete: (challengeId: string, challengeName: string) => void;
+}) {
   // Only log if challenge has valid data
   if (challenge && challenge.id) {
     console.log('ChallengeCard - Rendering challenge:', challenge);
   }
   
-  // Calculate status based on timing and isActive
+  // Format date to YYYY-MM-DD in local timezone
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+  
+  // Calculate status based on timing, isActive, and completion
   const now = new Date();
   const startsAt = new Date(challenge.startsAt);
   const endsAt = new Date(challenge.endsAt);
   
-  let status: "Active" | "Upcoming" | "Expired";
-  if (!challenge.isActive) {
+  let status: "Active" | "Upcoming" | "Expired" | "Completed";
+  
+  // Check if challenge is fully completed (all students finished)
+  if (challenge.participantCount > 0 && challenge.progressPercentage === 100) {
+    status = "Completed";
+  } else if (!challenge.isActive) {
     status = "Expired";
   } else if (now < startsAt) {
     status = "Upcoming";
@@ -115,11 +145,13 @@ function ChallengeCard({ challenge, onAssign, onDetails }: { challenge: Challeng
     Active: "bg-[#10B981]/15 text-[#10B981]",
     Upcoming: "bg-[#F59E0B]/15 text-[#F59E0B]",
     Expired: "bg-[#EF4444]/15 text-[#EF4444]",
+    Completed: "bg-[#3B82F6]/15 text-[#3B82F6]",
   };
   const statusDot: Record<typeof status, string> = {
     Active: "bg-[#10B981]",
     Upcoming: "bg-[#F59E0B]",
     Expired: "bg-[#EF4444]",
+    Completed: "bg-[#3B82F6]",
   };
 
   return (
@@ -166,56 +198,100 @@ function ChallengeCard({ challenge, onAssign, onDetails }: { challenge: Challeng
   </div>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <button
-              className="rounded-md p-1 text-[#64748B] hover:bg-[#F1F5F9] hover:text-[#1E293B]"
-              aria-label="More options"
-            >
-              <MoreVertical className="h-4 w-4" />
-            </button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-44">
-            <DropdownMenuItem onClick={() => onDetails(challenge)}>
+                      <Button variant="ghost" size="icon" className="h-8 w-8">
+                        <MoreVertical className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem className="gap-2 text-[#767676]" onClick={() => onDetails(challenge)}>
               <Eye className="h-4 w-4" /> View Details
             </DropdownMenuItem>
-            <DropdownMenuItem>
-              <UserPlus className="h-4 w-4" /> Assign to Student
+            <DropdownMenuItem className="gap-2 text-[#767676]" onClick={() => onAssign(challenge)}>
+              <UserRoundPlus className="h-4 w-4" /> Assign to Student
+            </DropdownMenuItem>
+            <DropdownMenuItem 
+              onClick={() => onDelete(challenge.id, challenge.name)}
+              className="text-[#EF4444] focus:text-[#EF4444] focus:bg-[#EF4444]/10 gap-2"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M3 6h18"/>
+                <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/>
+                <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
+                <line x1="10" y1="11" x2="10" y2="17"/>
+                <line x1="14" y1="11" x2="14" y2="17"/>
+              </svg>
+              Delete
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
 
       <div className="p-5">
-        {/* <h3 className="text-center text-base font-semibold text-[#1E293B]">{challenge.title}</h3> */}
-
         <p className="text-sm leading-relaxed text-[#65758B]">
           {challenge.description}
         </p>
 
-        <div className="mt-3 flex items-center gap-1.5 text-[15px] text-[#64748B]">
-          <CalendarDays className="h-3.5 w-3.5 mr-1" />
+        <div className="mt-3 flex items-center gap-1.5 text-[13px] text-[#64748B]">
+          <CalendarDays className="h-4 w-4" />
           <span>
-            {new Date(challenge.startsAt).toLocaleDateString()} → {new Date(challenge.endsAt).toLocaleDateString()}
+            {formatDate(challenge.startsAt)} → {formatDate(challenge.endsAt)}
           </span>
         </div>
 
-       
+        {/* Progress Bar Section */}
+        <div className="mt-4">
+          <div className="flex items-center justify-between text-sm mb-2">
+            <span className="text-[#64748B]">
+              {challenge.completedCount} / {challenge.participantCount} completed
+            </span>
+            <span className="text-[#3B82F6] font-semibold">
+              {challenge.progressPercentage}%
+            </span>
+          </div>
+          <div className="h-2 w-full rounded-full bg-[#E2E8F0]">
+            <div 
+              className="h-full rounded-full bg-[#3B82F6] transition-all duration-300"
+              style={{ width: `${challenge.progressPercentage}%` }}
+            />
+          </div>
+        </div>
 
         <div className="mt-4 flex items-center gap-2">
           <Button 
             variant="outline" 
-            className="flex-1 rounded-[12px] gap-1.5"
+            className="flex-1 rounded-[12px] text-normal gap-2.5"
             onClick={() => onDetails(challenge)}
           >
             <Eye className="h-4 w-4" />
             View Details
           </Button>
-          <Button 
-            className="flex-1 gap-1.5 bg-[#3C83F6] rounded-[12px] text-[#FFFFFF] hover:bg-[#3B82F6]/90"
-            onClick={() => onAssign(challenge)}
-          >
-            <UserPlus className="h-4 w-4" />
-            Assign
-          </Button>
+          {challenge.progressPercentage === 100 ? (
+            <Button 
+              className="flex-1 gap-2.5 bg-[#3B82F6] text-normal rounded-[12px] text-[#FFFFFF] hover:bg-[#3B82F6]/90 cursor-not-allowed"
+              disabled
+            >
+              <Trophy className="h-4 w-4" />
+              Completed
+            </Button>
+          ) : challenge.participantCount > 0 ? (
+            <Button 
+              className="flex-1 gap-2.5 bg-[#10B981] text-normal rounded-[12px] text-[#FFFFFF] hover:bg-[#10B981]/90 cursor-not-allowed"
+              disabled
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="20 6 9 17 4 12"/>
+              </svg>
+              Assigned
+            </Button>
+          ) : (
+            <Button 
+              className="flex-1 gap-2.5 bg-[#3C83F6] text-normal rounded-[12px] text-[#FFFFFF] hover:bg-[#3B82F6]/90"
+              onClick={() => onAssign(challenge)}
+            >
+              <UserRoundPlus className="h-4 w-4" />
+              Assign
+            </Button>
+          )}
         </div>
       </div>
     </div>
@@ -230,10 +306,49 @@ export default function Challenges() {
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [selectedChallenge, setSelectedChallenge] = useState<Challenge | null>(null);
   const { selectedSchoolId, schools, isSuperAdmin, setSelectedSchoolId } = useSchoolFilter();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  
   const { data: challenges = [], isLoading, error } = useQuery({
     queryKey: ["admin-challenges", selectedSchoolId],
     queryFn: fetchChallenges,
   });
+
+  // Delete mutation
+  const deleteMutation = useMutation({
+    mutationFn: async (challengeId: string) => {
+      const response = await fetch(`/api/challenges/${challengeId}`, {
+        method: 'DELETE',
+      });
+      
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to delete challenge');
+      }
+      
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-challenges"] });
+      toast({
+        title: "Challenge deleted",
+        description: "The challenge has been successfully deleted.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to delete challenge",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleDelete = (challengeId: string, challengeName: string) => {
+    if (window.confirm(`Are you sure you want to delete "${challengeName}"? This action cannot be undone and will remove all associated assignments and progress.`)) {
+      deleteMutation.mutate(challengeId);
+    }
+  };
 
   // Handle query errors
   if (error) {
@@ -318,6 +433,7 @@ export default function Challenges() {
                     setSelectedChallenge(challenge);
                     setDetailsOpen(true);
                   }}
+                  onDelete={handleDelete}
                 />
               ))}
             </div>
@@ -328,7 +444,8 @@ export default function Challenges() {
 
         <CreateChallengeDialog 
           open={createOpen} 
-          onOpenChange={setCreateOpen} 
+          onOpenChange={setCreateOpen}
+          isAdmin={true}
         />
         
         <AssignChallengeDialog 
@@ -336,6 +453,8 @@ export default function Challenges() {
           onOpenChange={setAssignOpen}
           challengeName={selectedChallenge?.name}
           challengeId={selectedChallenge?.id}
+          startsAt={selectedChallenge?.startsAt}
+          endsAt={selectedChallenge?.endsAt}
         />
         
         <ChallengeDetailsDialog 

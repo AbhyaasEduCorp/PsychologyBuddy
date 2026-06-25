@@ -243,6 +243,26 @@ export function useChat({
 
 
   const router = useRouter();
+  
+  // IMMEDIATE cleanup of stale sessions (runs synchronously before any React lifecycle)
+  if (typeof window !== 'undefined' && studentId) {
+    const studentSessionKey = `chatSessionId_${studentId}`;
+    const sessionCreatedKey = `chatSessionCreated_${studentId}`;
+    const savedSessionId = sessionStorage.getItem(studentSessionKey);
+    const sessionCreatedTime = sessionStorage.getItem(sessionCreatedKey);
+    
+    if (savedSessionId && sessionCreatedTime) {
+      const age = Date.now() - parseInt(sessionCreatedTime);
+      const maxSessionAge = 6 * 60 * 60 * 1000; // 6 hours
+      
+      if (age > maxSessionAge) {
+        console.log('[ImmediateCleanup] Stale session detected on hook init, removing');
+        sessionStorage.removeItem(studentSessionKey);
+        sessionStorage.removeItem(sessionCreatedKey);
+        sessionStorage.removeItem('lastSummaryId');
+      }
+    }
+  }
 
 
 
@@ -307,6 +327,47 @@ export function useChat({
 
 
   const timerShouldBeActive = useRef(false) // Timer should only start after first student message
+
+  
+
+  // Clean up stale sessions on mount
+  useEffect(() => {
+    const cleanupStaleSessions = () => {
+      if (!studentId) return;
+      
+      const studentSessionKey = `chatSessionId_${studentId}`;
+      const savedSessionId = sessionStorage.getItem(studentSessionKey);
+      
+      if (savedSessionId) {
+        console.log('[StaleSessionCleanup] Checking session:', savedSessionId);
+        
+        // Check if session is too old (more than 6 hours)
+        const maxSessionAge = 6 * 60 * 60 * 1000; // 6 hours in milliseconds
+        const sessionCreatedKey = `chatSessionCreated_${studentId}`;
+        const sessionCreatedTime = sessionStorage.getItem(sessionCreatedKey);
+        
+        if (sessionCreatedTime) {
+          const age = Date.now() - parseInt(sessionCreatedTime);
+          if (age > maxSessionAge) {
+            console.log('[StaleSessionCleanup] Session is stale (age: ' + Math.round(age / 1000 / 60) + ' minutes), removing and reloading');
+            sessionStorage.removeItem(studentSessionKey);
+            sessionStorage.removeItem(sessionCreatedKey);
+            sessionStorage.removeItem('lastSummaryId');
+            
+            // Reload page to ensure clean state
+            window.location.reload();
+            return; // Stop execution after reload
+          }
+        } else {
+          // No creation time found, add it now (for existing sessions)
+          console.log('[StaleSessionCleanup] No creation time found, adding current time');
+          sessionStorage.setItem(sessionCreatedKey, Date.now().toString());
+        }
+      }
+    };
+    
+    cleanupStaleSessions();
+  }, [studentId]);
 
 
 
@@ -387,9 +448,8 @@ export function useChat({
 
 
   // Debug: Monitor session time in real-time
-
-
-
+  // DISABLED: Causes performance issues and console spam
+  /*
   useEffect(() => {
 
 
@@ -489,6 +549,7 @@ export function useChat({
 
 
   }, [state.sessionStartTime, state.sessionId]);
+  */
 
 
 
@@ -901,6 +962,25 @@ export function useChat({
 
 
     if (!sessionIdRef.current || !studentId) return;
+    
+    // Additional check: Validate session is not stale
+    const studentSessionKey = `chatSessionId_${studentId}`;
+    const sessionCreatedKey = `chatSessionCreated_${studentId}`;
+    const sessionCreatedTime = sessionStorage.getItem(sessionCreatedKey);
+    
+    if (sessionCreatedTime) {
+      const age = Date.now() - parseInt(sessionCreatedTime);
+      const maxSessionAge = 6 * 60 * 60 * 1000; // 6 hours
+      
+      if (age > maxSessionAge) {
+        console.log(`[AutoTermination] Session is stale, aborting termination and cleaning up`);
+        sessionStorage.removeItem(studentSessionKey);
+        sessionStorage.removeItem(sessionCreatedKey);
+        sessionStorage.removeItem('lastSummaryId');
+        isTerminatingRef.current = false;
+        return;
+      }
+    }
 
 
 
@@ -1010,11 +1090,13 @@ export function useChat({
 
       console.log(`[AutoTermination] Summary API response status: ${response.status}`);
 
-
-
-
-
-
+      // Check if response is ok before parsing
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`[AutoTermination] API error (${response.status}):`, errorText);
+        isTerminatingRef.current = false;
+        return;
+      }
 
       const data = await response.json();
 
@@ -1028,13 +1110,14 @@ export function useChat({
 
 
 
-      console.log(`[AutoTermination] Response data keys:`, Object.keys(data));
+      console.log(`[AutoTermination] Response data keys:`, Object.keys(data || {}));
 
-
-
-
-
-
+      // Check if data is empty or malformed
+      if (!data || typeof data !== 'object') {
+        console.error(`[AutoTermination] Invalid response data:`, { data, type: typeof data });
+        isTerminatingRef.current = false;
+        return;
+      }
 
       if (data && data.success) {
 
@@ -1072,7 +1155,12 @@ export function useChat({
 
 
 
-        console.error(`[AutoTermination] Summary generation failed:`, data);
+        console.error(`[AutoTermination] Summary generation failed:`, {
+          success: data?.success,
+          error: data?.error,
+          details: data?.details,
+          fullData: data
+        });
 
 
 
@@ -1088,7 +1176,11 @@ export function useChat({
 
 
 
-      console.error('Failed to generate summary during automatic termination:', error);
+      console.error('[AutoTermination] Failed to generate summary during automatic termination:', {
+        error: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+        errorType: error?.constructor?.name
+      });
 
 
 
@@ -2309,8 +2401,10 @@ export function useChat({
 
 
         sessionStorage.setItem(studentSessionKey, data.sessionId)
-
-
+        
+        // Store session creation time for stale session detection
+        const sessionCreatedKey = `chatSessionCreated_${studentId}`;
+        sessionStorage.setItem(sessionCreatedKey, Date.now().toString());
 
         
 
@@ -3661,6 +3755,12 @@ export function useChat({
 
 
                     sessionStorage.setItem(studentSessionKey, savedSessionId)
+                    
+                    // Store creation time for restored session
+                    const sessionCreatedKey = `chatSessionCreated_${studentId}`;
+                    if (!sessionStorage.getItem(sessionCreatedKey)) {
+                      sessionStorage.setItem(sessionCreatedKey, Date.now().toString());
+                    }
 
 
 

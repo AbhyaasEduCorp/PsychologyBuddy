@@ -408,7 +408,7 @@ function ProfileInfo({ student, onProfileUpdate }: any) {
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
         <InfoItem 
           icon={<GraduationCap className="w-4 h-4 text-[#1E86FD]" />} 
-          label="Full Name" 
+          label="First Name" 
           value={isEditing ? (
             <Input
               type="text"
@@ -417,7 +417,21 @@ function ProfileInfo({ student, onProfileUpdate }: any) {
               className="w-full border border-gray-300 rounded text-sm"
               placeholder="First Name"
             />
-          ) : student.fullName} 
+          ) : student.firstName} 
+        />
+
+        <InfoItem 
+          icon={<GraduationCap className="w-4 h-4 text-[#1E86FD]" />} 
+          label="Last Name" 
+          value={isEditing ? (
+            <Input
+              type="text"
+              value={editedStudent.lastName || ""}
+              onChange={(e) => setEditedStudent({...editedStudent, lastName: e.target.value})}
+              className="w-full border border-gray-300 rounded text-sm"
+              placeholder="Last Name"
+            />
+          ) : student.lastName} 
         />
 
         <InfoItem 
@@ -468,7 +482,6 @@ function ProfileInfo({ student, onProfileUpdate }: any) {
               placeholder="Emergency Contact Phone"
             />
           ) : student.emergencyContact?.phone}
-          full
         />
       </div>
     </div>

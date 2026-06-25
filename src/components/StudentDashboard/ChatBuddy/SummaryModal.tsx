@@ -1,7 +1,6 @@
 "use client";
 
-import { X, Sparkles, Lightbulb, Shield } from "lucide-react";
-import React from "react";
+import { X, Sparkles, Shield } from "lucide-react";
 import Image from "next/image";
 
 interface SummaryModalProps {
@@ -31,17 +30,24 @@ export default function SummaryModal({
   
   // Calculate relative date
   const getRelativeDate = (date: Date, reference: Date) => {
-    const diffTime = Math.abs(reference.getTime() - date.getTime());
+    const diffTime = reference.getTime() - date.getTime(); // Removed Math.abs to preserve direction
     const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
     
     if (diffDays === 0) {
       return 'Today';
     } else if (diffDays === 1) {
-      return date < reference ? 'Yesterday' : 'Tomorrow';
-    } else if (diffDays < 7) {
+      return 'Yesterday';
+    } else if (diffDays > 1 && diffDays < 7) {
       return `${diffDays} days ago`;
-    } else {
+    } else if (diffDays >= 7) {
       // For older dates, show the actual date
+      return date.toLocaleDateString('en-US', { 
+        month: 'short', 
+        day: 'numeric',
+        year: date.getFullYear() !== reference.getFullYear() ? 'numeric' : undefined
+      });
+    } else {
+      // Future dates (negative diffDays)
       return date.toLocaleDateString('en-US', { 
         month: 'short', 
         day: 'numeric',
@@ -90,12 +96,12 @@ export default function SummaryModal({
           </h2>
 
           {/* Subtitle */}
-          <p className="text-center text-xs sm:text-[22px] text-[#767676] mb-3 sm:mb-3 px-2">
+          <p className="text-center text-xs sm:text-sm text-[#767676] mb-3 sm:mb-3 px-2">
             A gentle summary of your conversation
           </p>
 
           {/* Date and Time */}
-          <div className="flex flex-row sm:flex-row items-center justify-center gap-3 sm:gap-6 text-xs text-gray-400">
+          <div className="flex flex-row items-center justify-center gap-3 sm:gap-6 text-xs text-gray-400">
             <div className="flex items-center gap-1.5">
               <svg className="w-3 h-3 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <rect x="3" y="4" width="18" height="18" rx="2" ry="2" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
@@ -116,10 +122,10 @@ export default function SummaryModal({
         </div>
 
         {/* Scrollable Content */}
-        <div className="flex-1 p-4 sm:p-4 sm:pl-13 space-y-4 sm:space-y-5 overflow-y-auto">
+        <div className="flex-1 p-4 sm:p-6 space-y-4 overflow-y-auto">
 
           {/* Main Topic Badge */}
-          <div className="flex flex-row sm:flex-row items-start sm:items-center gap-2">
+          <div className="flex flex-row items-start sm:items-center gap-2">
             <span className="text-[#767676] font-medium text-[16px] sm:text-[18px]">Main Topic :</span>
             <span className="px-3 sm:px-4 py-1.5 bg-emerald-50 text-emerald-600 rounded-full text-[11px] sm:text-sm font-medium border border-emerald-200">
               {summary.mainTopic}
@@ -127,17 +133,17 @@ export default function SummaryModal({
           </div>
 
           {/* Summary Section */}
-          <div className="space-y-3 sm:space-y-4">
+          <div className="space-y-3 sm:space-y-3">
             <div className="flex items-center gap-2">
               <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-gray-700" />
-              <h3 className="font-semibold text-[#2F3D43] text-sm sm:text-[21px]">Summary</h3>
+              <h3 className="font-semibold text-[#2F3D43] text-sm sm:text-[19px]">Summary</h3>
             </div>
 
-            <div className="bg-[#F8FFFF] p-4 sm:p-5 rounded-2xl space-y-3 sm:space-y-4">
+            <div className="bg-[#F8FFFF] p-4 sm:p-5 rounded-2xl space-y-3">
               {/* How the conversation started */}
-              <div className="space-y-2">
-                <h4 className="font-semibold text-[#2F3D43] text-xs sm:text-[16px]">
-                  How the conversation started
+              <div className="space-y-1.5">
+                <h4 className="font-semibold text-[#2F3D43] text-xs sm:text-[15px]">
+                  How it started
                 </h4>
                 <p className="text-[#767676] text-xs sm:text-[14px] leading-relaxed">
                   {summary.conversationStart}
@@ -145,9 +151,9 @@ export default function SummaryModal({
               </div>
 
               {/* What the conversation was about */}
-              <div className="space-y-2">
-                <h4 className="font-semibold text-[#2F3D43] text-xs sm:text-[16px]">
-                  What the conversation was about
+              <div className="space-y-1.5">
+                <h4 className="font-semibold text-[#2F3D43] text-xs sm:text-[15px]">
+                  What we discussed
                 </h4>
                 <p className="text-[#767676] text-xs sm:text-[14px] leading-relaxed">
                   {summary.conversationAbout}
@@ -157,7 +163,7 @@ export default function SummaryModal({
           </div>
 
           {/* Reflection Section */}
-          <div className="space-y-3 sm:space-y-4">
+          <div className="space-y-3 sm:space-y-3">
             <div className="flex items-center gap-2">
               <Image 
                 src="/Summary/lightbulb.png" 
@@ -166,11 +172,11 @@ export default function SummaryModal({
                 height={20}
                 className="w-4 h-4 sm:w-5 sm:h-5 object-contain"
               />
-              <h3 className="font-semibold text-[#2F3D43] text-sm sm:text-[21px]">Reflection</h3>
+              <h3 className="font-semibold text-[#2F3D43] text-sm sm:text-[19px]">Reflection</h3>
             </div>
 
             <div className="bg-[#FFFDF7] p-4 sm:p-5 rounded-2xl">
-              <p className="text-gray-600 text-xs sm:text-sm leading-relaxed italic">
+              <p className="text-gray-600 text-xs sm:text-[14px] leading-relaxed italic">
                 {summary.reflection}
               </p>
             </div>
@@ -184,9 +190,9 @@ export default function SummaryModal({
         </div>
 
         {/* Footer */}
-        <div className="flex justify-center items-center px-4 sm:px-6 py-4 sm:py- bg-white rounded-b-[20px] flex-shrink-0">
+        <div className="flex justify-center items-center px-4 sm:px-6 py-4 sm:py-5 bg-white rounded-b-[20px] flex-shrink-0">
           {onImport && (
-            <div className="flex flex-col sm:flex-col items-center gap-2 space-y-2">
+            <div className="flex flex-col items-center gap-2 space-y-2">
               <button
                 onClick={onImport}
                 className="w-[245px] sm:w-[345px] px-4 sm:px-5 py-3 rounded-full text-white font-medium text-sm sm:text-[16px] bg-gradient-to-r from-[#1B9EE0] to-[#4FC1F9] shadow-md hover:shadow-lg transition-all duration-200 hover:scale-[1.02]"
