@@ -74,6 +74,15 @@ const CurrentStreak = dynamic(
   }
 );
 
+// Query-based (Challenges)
+const ActiveChallenges = dynamic(
+  () => import("@/src/components/StudentDashboard/Dashboard/ActiveChallenges"),
+  {
+    ssr: false,
+    loading: () => <div className="h-[200px] bg-gray-100 rounded-xl animate-pulse" />,
+  }
+);
+
 /* -------------------------
    Root Page
 ------------------------- */
@@ -101,6 +110,10 @@ export default function DashboardPage() {
             {/* LEFT COLUMN */}
             <div className="space-y-4 sm:space-y-5 md:space-y-6 lg:space-y-8">
               <DailyMotivation />
+
+              <Suspense fallback={<div className="h-[200px] bg-gray-100 rounded-xl animate-pulse" />}>
+                <ActiveChallenges />
+              </Suspense>
 
               <Suspense fallback={<div className="h-[120px] bg-gray-100 rounded-xl animate-pulse" />}>
                 <BadgeProgress />

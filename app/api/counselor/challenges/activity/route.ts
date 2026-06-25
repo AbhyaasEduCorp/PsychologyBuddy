@@ -1,27 +1,41 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { withPermission } from '@/src/middleware/permission.middleware';
 import prisma from '@/src/prisma';
+import { formatDistanceToNow } from 'date-fns';
+
+interface ActivityItem {
+  id: string;
+  studentName: string;
+  studentId: string;
+  className: string;
+  challengeName: string;
+  challengeId: string;
+  status: string;
+  duration: string;
+  timestamp: string;
+}
 
 export const GET = withPermission({
   module: 'CHALLENGES',
   action: 'VIEW',
 })(async (req: NextRequest, { user }: any) => {
   try {
-    const counselorId = user?.id;
+    console.log('Fetching challenge activity for counselor:', user.id, 'schoolId:', user.schoolId);
 
-    // Fetch user challenges with related data
+    // Get recent challenge activities from the user's school
     const activities = await prisma.userChallenge.findMany({
       where: {
         challenge: {
-          isActive: true,
-          // If counselor, maybe filter by counselor's school?
-          // For now, let's get all related to the challenges they can see
-        }
+          schoolId: user.schoolId
+        },
+        OR: [
+          { status: 'COMPLETED' },
+          { status: 'EXPIRED' }
+        ]
       },
       include: {
         user: {
           select: {
-            id: true,
             firstName: true,
             lastName: true,
             studentId: true,
@@ -43,36 +57,46 @@ export const GET = withPermission({
         }
       },
       orderBy: {
-        assignedAt: 'desc'
+        updatedAt: 'desc'
       },
-      take: 20
+      take: 50
     });
 
-    const formattedActivities = activities.map(activity => {
-      const durationDays = Math.ceil((activity.challenge.endsAt.getTime() - activity.challenge.startsAt.getTime()) / (1000 * 60 * 60 * 24));
+    const formattedActivities: ActivityItem[] = activities.map(activity => {
+      const startDate = new Date(activity.challenge.startsAt);
+      const endDate = new Date(activity.challenge.endsAt);
+      const completedDate = activity.completedAt || activity.updatedAt;
       
+      // Calculate duration from start to completion/expiry
+      const startedAtTime = activity.startedAt?.getTime() ?? startDate.getTime();
+      const durationMs = completedDate.getTime() - startedAtTime;
+      const durationDays = Math.floor(durationMs / (1000 * 60 * 60 * 24));
+
       return {
         id: activity.id,
         studentName: `${activity.user.firstName} ${activity.user.lastName}`,
         studentId: activity.user.studentId || 'N/A',
-        className: activity.user.classRef ? `Class ${activity.user.classRef.grade}-${activity.user.classRef.section}` : 'N/A',
+        className: activity.user.classRef 
+          ? `Class ${activity.user.classRef.grade}-${activity.user.classRef.section}`
+          : 'N/A',
         challengeName: activity.challenge.name,
         challengeId: activity.challenge.id,
-        status: activity.status, // COMPLETED, EXPIRED, etc.
-        duration: `${durationDays} days`,
-        timestamp: activity.completedAt || activity.assignedAt,
-        updatedAt: activity.assignedAt
+        status: activity.status,
+        duration: `${durationDays} day${durationDays !== 1 ? 's' : ''}`,
+        timestamp: completedDate.toISOString()
       };
     });
 
     return NextResponse.json({
       success: true,
-      data: formattedActivities
+      data: formattedActivities,
+      message: 'Challenge activity retrieved successfully'
     });
-
-  } catch (error) {
-    console.error('Challenge Activity API error:', error);
-    return NextResponse.json({ success: false, message: 'Internal server error' }, { status: 500 });
+  } catch (error: any) {
+    console.error('Error fetching challenge activity:', error);
+    return NextResponse.json(
+      { success: false, message: error.message || 'Failed to fetch challenge activity' },
+      { status: 500 }
+    );
   }
 });
-

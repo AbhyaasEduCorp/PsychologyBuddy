@@ -108,7 +108,7 @@ export default function CurrentStreak() {
         </div>
       </div>
 
-      <div className="w-full sm:w-[400px] md:w-[480px] ml-2 sm:ml-6 mt-6 sm:mt-8 h-[1px] bg-[#D0D0D0] my-3 sm:my-4" />
+      <div className="w-auto max-w-[480px] ml-2 sm:ml-6 mr-2 sm:mr-6 mt-6 sm:mt-8 h-[1px] bg-[#D0D0D0] my-3 sm:my-4" />
 
       <div className="flex items-center gap-2 ml-2 sm:ml-5 mt-1">
         <Trophy className="h-[16px] w-[16px] sm:h-[18px] sm:w-[18px] md:h-[20px] md:w-[20px] text-[#9770DB]" />

@@ -79,7 +79,7 @@ export class ChallengeProgressService {
       where: {
         userId,
         status: {
-          in: ['NOT_STARTED', 'IN_PROGRESS', 'ASSIGNED']
+          in: ['ASSIGNED', 'NOT_STARTED', 'IN_PROGRESS']
         },
         challenge: {
           moduleType,
@@ -100,6 +100,18 @@ export class ChallengeProgressService {
     userChallenge: any
   ): Promise<void> {
     const { challenge } = userChallenge;
+    
+    console.log('[ChallengeProgress] Updating progress:', {
+      challengeId: challenge.id,
+      challengeName: challenge.name,
+      challengeType: challenge.challengeType,
+      targetUnit: challenge.targetUnit,
+      targetValue: challenge.targetValue,
+      eventAction: event.action,
+      eventValue: event.value,
+      currentProgress: userChallenge.currentProgress
+    });
+    
     let progressIncrement = 0;
 
     // Calculate progress based on challenge type and activity
@@ -121,8 +133,13 @@ export class ChallengeProgressService {
         break;
     }
 
+    console.log('[ChallengeProgress] Progress increment calculated:', progressIncrement);
+
     if (progressIncrement > 0) {
       await this.incrementChallengeProgress(userChallenge.id, progressIncrement);
+      console.log('[ChallengeProgress] Progress incremented successfully');
+    } else {
+      console.log('[ChallengeProgress] No progress increment (value was 0)');
     }
   }
 
@@ -133,16 +150,18 @@ export class ChallengeProgressService {
     // Daily challenges typically complete in one action
     switch (challenge.targetUnit) {
       case 'ENTRIES':
-        return event.action === 'entry_created' ? challenge.targetValue : 0;
+        return event.action === 'entry_created' ? 1 : 0;
       
       case 'SESSIONS':
-        return event.action === 'session_completed' ? challenge.targetValue : 0;
+        return event.action === 'session_completed' ? 1 : 0;
       
       case 'MINUTES':
-        return event.value || 0;
+        // Convert seconds to minutes if event.value is in seconds
+        const minutes = event.value ? Math.ceil(event.value / 60) : 0;
+        return minutes;
       
       case 'ARTICLES':
-        return event.action === 'article_read' ? challenge.targetValue : 0;
+        return event.action === 'article_read' || event.action === 'article_completed' ? 1 : 0;
       
       default:
         return 0;
@@ -162,10 +181,12 @@ export class ChallengeProgressService {
         return event.action === 'session_completed' ? 1 : 0;
       
       case 'MINUTES':
-        return event.value || 0;
+        // Convert seconds to minutes if event.value is in seconds
+        const minutes = event.value ? Math.ceil(event.value / 60) : 0;
+        return minutes;
       
       case 'ARTICLES':
-        return event.action === 'article_read' ? 1 : 0;
+        return event.action === 'article_read' || event.action === 'article_completed' ? 1 : 0;
       
       default:
         return 0;
@@ -201,10 +222,12 @@ export class ChallengeProgressService {
         return event.action === 'session_completed' ? 1 : 0;
       
       case 'MINUTES':
-        return event.value || 0;
+        // Convert seconds to minutes if event.value is in seconds
+        const minutes = event.value ? Math.ceil(event.value / 60) : 0;
+        return minutes;
       
       case 'ARTICLES':
-        return event.action === 'article_read' ? 1 : 0;
+        return event.action === 'article_read' || event.action === 'article_completed' ? 1 : 0;
       
       default:
         return 0;
@@ -398,19 +421,7 @@ export class ChallengeProgressService {
         }
       });
 
-      // Transform to match expected format
-      return {
-        ...userChallenge,
-        challenge: {
-          ...userChallenge.challenge,
-          moduleType: this.getModuleTypeFromFields(userChallenge.challenge),
-          challengeType: this.getChallengeTypeFromName(userChallenge.challenge.name),
-          targetValue: this.extractTargetValue(userChallenge.challenge),
-          targetUnit: this.extractTargetUnit(userChallenge.challenge),
-          rewardPoints: 10, // Default reward points since field doesn't exist in existing schema
-          difficulty: this.getDifficultyFromName(userChallenge.challenge.name)
-        }
-      };
+      return userChallenge;
     } catch (error) {
       console.error('Error starting challenge:', error);
       throw error;
@@ -425,6 +436,8 @@ export class ChallengeProgressService {
     moduleType: ModuleType
   ): Promise<{ active: any[], completed: any[], available: any[] }> {
     try {
+      console.log('getModuleChallenges called:', { userId, moduleType });
+
       // Get active challenges for this user and module
       const activeChallenges = await prisma.userChallenge.findMany({
         where: {
@@ -434,22 +447,35 @@ export class ChallengeProgressService {
           },
           challenge: {
             isActive: true,
-            // Filter by module type using existing fields
-            OR: [
-              { requiresJournaling: moduleType === 'JOURNALING' },
-              { requiresMeditation: moduleType === 'MEDITATION' },
-              { requiresMusic: moduleType === 'MUSIC' },
-              { requiresPsychoeducation: moduleType === 'ARTICLE' }
-            ]
+            moduleType: moduleType
           }
         },
         include: {
-          challenge: true
+          challenge: {
+            include: {
+              creator: {
+                select: {
+                  firstName: true,
+                  lastName: true
+                }
+              }
+            }
+          }
         },
         orderBy: {
           createdAt: 'desc'
         }
       });
+
+      console.log('Active challenges found:', activeChallenges.length);
+      if (activeChallenges.length > 0) {
+        console.log('First challenge sample:', {
+          id: activeChallenges[0].challenge.id,
+          name: activeChallenges[0].challenge.name,
+          createdBy: activeChallenges[0].challenge.createdBy,
+          creator: activeChallenges[0].challenge.creator
+        });
+      }
 
       // Get completed challenges
       const completedChallenges = await prisma.userChallenge.findMany({
@@ -458,16 +484,20 @@ export class ChallengeProgressService {
           status: 'COMPLETED',
           challenge: {
             isActive: true,
-            OR: [
-              { requiresJournaling: moduleType === 'JOURNALING' },
-              { requiresMeditation: moduleType === 'MEDITATION' },
-              { requiresMusic: moduleType === 'MUSIC' },
-              { requiresPsychoeducation: moduleType === 'ARTICLE' }
-            ]
+            moduleType: moduleType
           }
         },
         include: {
-          challenge: true
+          challenge: {
+            include: {
+              creator: {
+                select: {
+                  firstName: true,
+                  lastName: true
+                }
+              }
+            }
+          }
         },
         orderBy: {
           completedAt: 'desc'
@@ -480,158 +510,39 @@ export class ChallengeProgressService {
       const availableChallenges = await prisma.challenge.findMany({
         where: {
           isActive: true,
+          moduleType: moduleType,
           id: {
             notIn: userChallengeIds
-          },
-          OR: [
-            { requiresJournaling: moduleType === 'JOURNALING' },
-            { requiresMeditation: moduleType === 'MEDITATION' },
-            { requiresMusic: moduleType === 'MUSIC' },
-            { requiresPsychoeducation: moduleType === 'ARTICLE' }
-          ]
+          }
         },
         orderBy: {
           createdAt: 'desc'
         }
       });
 
-      // Transform challenges to match expected format
-      const transformChallenge = (challenge: any) => ({
-        ...challenge,
-        moduleType: this.getModuleTypeFromFields(challenge),
-        challengeType: this.getChallengeTypeFromName(challenge.name),
-        targetValue: this.extractTargetValue(challenge),
-        targetUnit: this.extractTargetUnit(challenge),
-        rewardPoints: 10, // Default reward points since field doesn't exist in existing schema
-        difficulty: this.getDifficultyFromName(challenge.name)
-      });
-
       return {
         active: (activeChallenges || []).map(uc => ({
           ...uc,
-          challenge: transformChallenge(uc.challenge),
-          currentProgress: uc.progressPercentage || 0,
+          challenge: uc.challenge,
+          currentProgress: uc.currentProgress || 0,
           progressPercentage: uc.progressPercentage || 0
         })),
         completed: (completedChallenges || []).map(uc => ({
           ...uc,
-          challenge: transformChallenge(uc.challenge),
-          currentProgress: 100,
+          challenge: uc.challenge,
+          currentProgress: uc.challenge.targetValue || 100,
           progressPercentage: 100
         })),
-        available: (availableChallenges || []).map(transformChallenge)
+        available: (availableChallenges || [])
       };
     } catch (error) {
       console.error('Error getting module challenges:', error);
-      // Fallback to mock data if database fails
-      const mockData = this.getMockChallenges(moduleType);
       return {
-        active: mockData,
+        active: [],
         completed: [],
         available: []
       };
     }
-  }
-
-  /**
-   * Helper methods to transform existing challenge data to new format
-   */
-  private static getModuleTypeFromFields(challenge: any): ModuleType {
-    if (challenge.requiresJournaling) return ModuleType.JOURNALING;
-    if (challenge.requiresMeditation) return ModuleType.MEDITATION;
-    if (challenge.requiresMusic) return ModuleType.MUSIC;
-    if (challenge.requiresPsychoeducation) return ModuleType.ARTICLE;
-    return ModuleType.JOURNALING; // Default
-  }
-
-  private static getChallengeTypeFromName(name: string): string {
-    if (name.toLowerCase().includes('daily')) return 'DAILY';
-    if (name.toLowerCase().includes('weekly')) return 'WEEKLY';
-    if (name.toLowerCase().includes('streak')) return 'STREAK';
-    if (name.toLowerCase().includes('milestone') || name.toLowerCase().includes('total')) return 'MILESTONE';
-    return 'DAILY'; // Default
-  }
-
-  private static extractTargetValue(challenge: any): number {
-    // Extract target value from challenge name or description
-    const match = challenge.name?.match(/\d+/) || challenge.description?.match(/\d+/);
-    return match ? parseInt(match[0]) : 1;
-  }
-
-  private static extractTargetUnit(challenge: any): string {
-    if (challenge.requiresJournaling) return 'ENTRIES';
-    if (challenge.requiresMeditation) return 'SESSIONS';
-    if (challenge.requiresMusic) return 'SESSIONS';
-    if (challenge.requiresPsychoeducation) return 'ARTICLES';
-    return 'ENTRIES'; // Default
-  }
-
-  private static getDifficultyFromName(name: string): string {
-    if (name.toLowerCase().includes('advanced')) return 'ADVANCED';
-    if (name.toLowerCase().includes('intermediate')) return 'INTERMEDIATE';
-    return 'BEGINNER'; // Default
-  }
-
-  /**
-   * Get mock challenges for testing (fallback)
-   */
-  private static getMockChallenges(moduleType: ModuleType): any[] {
-    const baseChallenges: Record<ModuleType, any[]> = {
-      JOURNALING: [
-        {
-          id: 'journal_daily_1',
-          title: 'Write 1 Journal Entry',
-          description: 'Complete a journal entry today to express your thoughts and feelings',
-          moduleType: 'JOURNALING',
-          challengeType: 'DAILY',
-          targetValue: 1,
-          targetUnit: 'ENTRIES',
-          rewardPoints: 10,
-          difficulty: 'BEGINNER'
-        }
-      ],
-      MEDITATION: [
-        {
-          id: 'med_daily_10',
-          title: 'Meditate for 10 Minutes',
-          description: 'Complete a 10-minute meditation session',
-          moduleType: 'MEDITATION',
-          challengeType: 'DAILY',
-          targetValue: 10,
-          targetUnit: 'MINUTES',
-          rewardPoints: 15,
-          difficulty: 'BEGINNER'
-        }
-      ],
-      MUSIC: [
-        {
-          id: 'music_daily_15',
-          title: 'Listen to Music for 15 Minutes',
-          description: 'Listen to calming music for 15 minutes',
-          moduleType: 'MUSIC',
-          challengeType: 'DAILY',
-          targetValue: 15,
-          targetUnit: 'MINUTES',
-          rewardPoints: 10,
-          difficulty: 'BEGINNER'
-        }
-      ],
-      ARTICLE: [
-        {
-          id: 'article_daily_1',
-          title: 'Read 1 Article',
-          description: 'Read an article to learn something new',
-          moduleType: 'ARTICLE',
-          challengeType: 'DAILY',
-          targetValue: 1,
-          targetUnit: 'ARTICLES',
-          rewardPoints: 10,
-          difficulty: 'BEGINNER'
-        }
-      ]
-    };
-
-    return baseChallenges[moduleType] || [];
   }
 
   /**

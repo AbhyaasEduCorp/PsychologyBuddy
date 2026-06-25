@@ -572,6 +572,7 @@ export class StudentService {
           firstName: data.firstName,
           lastName: data.lastName,
           phone: data.phone,
+          ...(data.dateOfBirth !== undefined && { dateOfBirth: data.dateOfBirth }),
         }
       });
 
@@ -863,6 +864,7 @@ export class StudentService {
           fullName: `${student.firstName} ${student.lastName}`,
           email: student.email,
           phone: student.phone,
+          dateOfBirth: student.dateOfBirth || null,
           grade: student.classRef ? `${student.classRef.grade}th Grade` : 'Not Assigned',
           status: student.studentProfile?.status || 'ACTIVE',
           profileImage: student.studentProfile?.profileImage || null,

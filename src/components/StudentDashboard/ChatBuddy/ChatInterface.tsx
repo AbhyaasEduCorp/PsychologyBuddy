@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { useChat, useChatSummary, useServerAuth, useChatAccess } from "@/src/hooks";
+import { useExerciseRecommendations } from "@/src/hooks/use-exercise-recommendations";
 import { Message } from '@/src/hooks/use-chat';
 import { NavigationUtils } from "@/src/utils";
 import { FullPageLoading } from "@/components/ui/LoadingSpinner";
@@ -43,11 +44,20 @@ const formatTime = (timestamp: string) => {
       return 'Invalid Date';
     }
     
-    return date.toLocaleTimeString('en-US', { 
-      hour: '2-digit', 
-      minute: '2-digit',
-      hour12: true 
-    });
+    // Get hours and minutes
+    let hours = date.getHours();
+    const minutes = date.getMinutes();
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    
+    // Convert to 12-hour format
+    hours = hours % 12;
+    hours = hours ? hours : 12; // the hour '0' should be '12'
+    
+    // Format with leading zeros
+    const hoursStr = hours.toString().padStart(2, '0');
+    const minutesStr = minutes.toString().padStart(2, '0');
+    
+    return `${hoursStr}:${minutesStr} ${ampm}`;
   } catch (error) {
     console.warn('Timestamp parsing error:', error, 'for:', timestamp);
     return 'Invalid Date';
@@ -103,9 +113,9 @@ const ChatMessage = memo(function ChatMessage({
   });
 
   return (
-    <div className={`flex ${isBot ? 'justify-start' : 'justify-end'} mb-4 sm:mb-6`}>
+    <div className={`flex ${isBot ? 'justify-start' : 'justify-end'} mb-4 sm:mb-6 md:mb-8`}>
       {isBot && (
-        <div className={`max-w-[85%] sm:max-w-[70%] lg:max-w-[65%]`}>
+        <div className={`max-w-[85%] sm:max-w-[70%] md:max-w-[68%] lg:max-w-[65%]`}>
           {/* Logo and Label - Mobile Only */}
           <div className="mb-1 sm:hidden">
             <span className="inline-block align-middle">
@@ -122,7 +132,7 @@ const ChatMessage = memo(function ChatMessage({
             </span>
           </div>
           
-          {/* Logo and Label on Same Line - Desktop Only */}
+          {/* Logo and Label on Same Line - Desktop and Tablet */}
           <div className="mb-1 hidden sm:block">
             <span className="inline-block align-middle">
               <Image 
@@ -130,26 +140,23 @@ const ChatMessage = memo(function ChatMessage({
                 alt="Psychology Buddy Logo" 
                 width={20}
                 height={20}
-                className="w-5 h-5 sm:w-6 sm:h-6 object-contain"
+                className="w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7 object-contain"
               />
             </span>
-            <span className="inline-block align-middle text-[13px] font-semibold bg-gradient-to-r from-[#206894] to-[#36AFFA] bg-clip-text text-transparent ml-2">
+            <span className="inline-block align-middle text-[13px] md:text-sm font-semibold bg-gradient-to-r from-[#206894] to-[#36AFFA] bg-clip-text text-transparent ml-2">
               Psychology Buddy
             </span>
           </div>
           
           {/* Message Bubble */}
           <div
-            className={`px-3 py-2 sm:px-4 sm:py-3 rounded-[24px] bg-[#F2F8FD] text-gray-800 rounded-tl-sm relative`}
+            className={`px-3 py-2 sm:px-4 sm:py-3 md:px-3 md:py-2 rounded-[24px] bg-[#F2F8FD] text-gray-800 rounded-tl-sm relative shadow-sm`}
           >
-            {/* The "Friend" Accent - a soft blue line on the left */}
-            
-            
             <div className="text-gray-800 ml-2">
               <ReactMarkdown
                 components={{
                   // Custom paragraph styling without typography plugin
-                  p: ({ children }) => <p className="mb-3 last:mb-0 leading-relaxed text-[13px] sm:text-[15px]">{children}</p>,
+                  p: ({ children }) => <p className="mb-3 last:mb-0 leading-relaxed text-sm sm:text-base md:text-[13px] lg:text-[16px]">{children}</p>,
                   br: () => <br className="block h-4" />, // Add space between paragraphs
                 }}
               >
@@ -192,16 +199,16 @@ const ChatMessage = memo(function ChatMessage({
       )}
       
       {isStudent && (
-        <div className={`max-w-[85%] sm:max-w-[70%] lg:max-w-[65%] text-right`}>
+        <div className={`max-w-[85%] sm:max-w-[70%] md:max-w-[68%] lg:max-w-[65%] text-right`}>
           {/* Message Bubble */}
           <div
-            className={`px-3 py-2 sm:px-4 sm:py-3 rounded-2xl bg-gradient-to-r from-[#0A77C2] to-[#65B7F0] text-white rounded-tr-sm`}
+            className={`px-3 py-2 sm:px-4 sm:py-3 md:px-3 md:py-2 rounded-2xl bg-gradient-to-r from-[#0A77C2] to-[#65B7F0] text-white rounded-tr-sm shadow-sm`}
           >
-            <p className="text-[13px] sm:text-[15px] leading-relaxed break-words">{message.content}</p>
+            <p className="text-sm sm:text-base md:text-[13px] lg:text-[16px] leading-relaxed break-words">{message.content}</p>
           </div>
           
           {/* Timestamp */}
-          <span className="text-[10px] sm:text-[11px] text-gray-400 mt-1 px-1 block">
+          <span className="text-[10px] sm:text-[11px] md:text-xs text-gray-400 mt-1 px-1 block">
             {formatTime(message.timestamp)}
           </span>
         </div>
@@ -227,20 +234,20 @@ const TypingIndicator = memo(function TypingIndicator() {
   );
 });
 
-// Chat Input Component - memoized
-const ChatInput = memo(function ChatInput({ 
-  input, 
-  onInputChange, 
-  onSend, 
-  disabled = false,
-  placeholder = "Type your message…" 
-}: {
+// Chat Input Component - memoized with forwardRef
+const ChatInput = memo(React.forwardRef<HTMLInputElement, {
   input: string;
   onInputChange: (value: string) => void;
   onSend: () => void;
   disabled?: boolean;
   placeholder?: string;
-}) {
+}>(function ChatInput({ 
+  input, 
+  onInputChange, 
+  onSend, 
+  disabled = false,
+  placeholder = "Type your message…" 
+}, ref) {
   const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
@@ -249,36 +256,40 @@ const ChatInput = memo(function ChatInput({
   }, [onSend]);
 
   return (
-    <div className="px-3 sm:px-4 lg:px-15 py-3 sm:py-4 bg-white border-t border-[#f8f8f8]">
-      <div className="flex gap-2 sm:gap-3 items-center">
+    <div className="px-3 sm:px-4 md:px-10 lg:px-15 py-3 sm:py-4 md:py-6 bg-white border-t border-[#f8f8f8]">
+      <div className="flex gap-2 sm:gap-3 md:gap-4 items-center">
         <input
+          ref={ref}
           value={input}
           onChange={(e) => onInputChange(e.target.value)}
           onKeyDown={handleKeyDown}
           placeholder={placeholder}
           disabled={disabled}
-          className="flex-1 px-3 py-2 sm:px-4 sm:py-3 md:px-9 md:py-2 sm:w-[731px] sm:h-[65px] border-[1px] border-[#d4d4d4] rounded-full bg-[#fbfbfb] text-gray-700 placeholder-gray-400 focus:outline-none focus:border-[#1B9EE0] focus:ring-1 focus:ring-[#1B9EE0] disabled:opacity-50 text-[12px] sm:text-[13px] md:text-[15px] min-w-0"
+          autoFocus
+          className="flex-1 px-3 py-2 sm:px-4 sm:py-3 md:px-6 md:py-4 border-[1px] border-[#d4d4d4] rounded-full bg-[#fbfbfb] text-gray-700 placeholder-gray-400 focus:outline-none focus:border-[#1B9EE0] focus:ring-1 focus:ring-[#1B9EE0] disabled:opacity-50 text-sm sm:text-[16px] md:text-[16px] min-w-0"
         />
         <Button
           onClick={onSend}
           disabled={disabled || !input.trim()}
-          className="w-8 h-8 sm:w-10 sm:h-10 md:w-[61px] md:h-[61px] bg-gradient-to-r from-[#206894] to-[#36AFFA] hover:bg-[#1688bf] text-white rounded-full flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
+          className="w-8 h-8 sm:w-10 sm:h-10 md:w-14 md:h-14 bg-gradient-to-r from-[#206894] to-[#36AFFA] hover:bg-[#1688bf] text-white rounded-full flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0 shadow-md"
           size="icon"
         >
-          <Image src="/Icons/Vector.png" alt="Send" width={16} height={16} className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6"></Image>
+          <Image src="/Icons/Vector.png" alt="Send" width={16} height={16} className="w-4 h-4 sm:w-5 sm:h-5 md:w-7 md:h-7"></Image>
         </Button>
       </div>
     </div>
   );
-});
+}));
 
 // Exercise Suggestions Component (as bot message) - memoized
 const ExerciseSuggestions = memo(function ExerciseSuggestions({ 
   suggestions, 
+  introText,
   onSuggestionClick, 
   onDismiss 
 }: { 
   suggestions: any[];
+  introText?: string;
   onSuggestionClick: (suggestion: any) => void;
   onDismiss: () => void;
 }) {
@@ -327,14 +338,20 @@ const ExerciseSuggestions = memo(function ExerciseSuggestions({
             </span>
           </div>
           
-          <div className="px-3 py-2 sm:px-4 sm:py-3 rounded-[24px] bg-[#F2F8FD] text-gray-800 rounded-tl-sm">
-            <div className="text-[13px] sm:text-[15px] leading-relaxed break-words">
-              <div className="mb-3">
-                <h3 className="text-sm font-semibold text-[#2F3D43] mb-2">Try these exercises</h3>
-                <p className="text-xs text-gray-600">
-                  Based on our conversation, these exercises might help you feel better:
-                </p>
-              </div>
+          <div className="px-3 py-2 sm:px-4 sm:py-3 md:px-5 md:py-4 rounded-[24px] bg-[#F2F8FD] text-gray-800 rounded-tl-sm shadow-sm">
+            <div className="text-sm sm:text-base md:text-[17px] lg:text-[18px] leading-relaxed break-words">
+              {/* Natural introduction text */}
+              {introText && (
+                <div className="mb-4 text-gray-700">
+                  <ReactMarkdown
+                    components={{
+                      p: ({ children }) => <p className="mb-2 last:mb-0 leading-relaxed">{children}</p>,
+                    }}
+                  >
+                    {introText}
+                  </ReactMarkdown>
+                </div>
+              )}
               
               <div className="space-y-2">
                 {suggestions.map((suggestion, index) => (
@@ -372,14 +389,14 @@ const QuickReplies = memo(function QuickReplies({
   if (!replies.length) return null;
 
   return (
-    <div className={`px-3 sm:px-4 lg:px-15 py-2 sm:py-3 bg-white ${className}`}>
-      <div className="text-xs font-medium text-gray-500 mb-1 sm:mb-2">Quick replies:</div>
-      <div className="flex gap-1.5 sm:gap-2 overflow-x-auto scrollbar-hide">
+    <div className={`px-3 sm:px-4 md:px-10 lg:px-15 py-2 sm:py-3 md:py-4 bg-white ${className}`}>
+      <div className="text-xs md:text-[10px] font-medium text-gray-500 mb-1 sm:mb-2 md:mb-3">Quick replies:</div>
+      <div className="flex gap-1.5 sm:gap-2 md:gap-3 overflow-x-auto scrollbar-hide">
         {replies.map((reply) => (
           <button
             key={reply}
             onClick={() => onReplyClick(reply)}
-            className="px-3 py-1.5 sm:px-4 sm:py-2 bg-white border border-gray-200 rounded-full text-[11px] sm:text-[13px] text-gray-700 hover:bg-gray-50 hover:border-gray-300 whitespace-nowrap transition-colors flex-shrink-0"
+            className="px-3 py-1.5 sm:px-4 sm:py-2 md:px-4 md:py-1.5 bg-white border border-gray-200 rounded-full text-[11px] sm:text-[13px] md:text-[13px] text-gray-700 hover:bg-gray-50 hover:border-gray-300 whitespace-nowrap transition-colors flex-shrink-0"
           >
             {reply}
           </button>
@@ -400,23 +417,23 @@ const LastSummaryImport = memo(function LastSummaryImport({
   onDismiss: () => void;
 }) {
   return (
-    <div className="w-[250px] h-[87px] sm:w-[289px] sm:h-[87px] mx-1 sm:mx-1 lg:mx-1 my-3 sm:my-4 p-3 sm:p-3 bg-[#F2F8FD] rounded-[12px]">
+    <div className="w-[250px] h-[87px] sm:w-[289px] sm:h-[87px] md:w-[320px] md:h-[100px] mx-1 sm:mx-1 lg:mx-1 my-3 sm:my-4 md:my-5 p-3 sm:p-3 md:p-4 bg-[#F2F8FD] rounded-[12px] shadow-sm">
       <div className="flex flex-col gap-3">
         <div className="flex-1 min-w-0">
-          <p className="text-[12px] sm:text-[14px] font-medium text-[#767676] -mb-1 sm:-mb-1">Related context available:</p>
+          <p className="text-[12px] sm:text-[14px] md:text-[16px] font-medium text-[#767676] -mb-1 sm:-mb-1">Related context available:</p>
     
         </div>
         <div className="flex gap-2 flex-shrink-0">
           <button
             onClick={onImport}
-            className="w-[160px] h-[29px] sm:w-[180px] sm:h-[29px] text-[#F38414] rounded-full border-[1px] border-[#FFE1C3] text-[10px] sm:text-[12px] font-medium transition-colors flex items-center justify-center gap-1"
+            className="w-[160px] h-[29px] sm:w-[180px] sm:h-[29px] md:w-[200px] md:h-[34px] text-[#F38414] rounded-full border-[1px] border-[#FFE1C3] text-[10px] sm:text-[12px] md:text-[14px] font-medium transition-colors flex items-center justify-center gap-1"
           >
-            <Sparkles className="w-3 h-3 sm:w-4 sm:h-4 text-[#FF8E1C]" />
+            <Sparkles className="w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5 text-[#FF8E1C]" />
             Import from Last Session
           </button>
           <button
             onClick={onDismiss}
-            className="px-3 py-1.5 text-[#767676] hover:text-gray-800 text-[11px] sm:text-[12px] font-medium transition-colors"
+            className="px-3 py-1.5 text-[#767676] hover:text-gray-800 text-[11px] sm:text-[12px] md:text-sm font-medium transition-colors"
           >
             Dismiss
           </button>
@@ -432,37 +449,30 @@ const ChatHeader = memo(function ChatHeader({ onSummariesClick, onMoodCheckinCli
   onMoodCheckinClick: () => void;
 }) {
   return (
-    <div className="bg-gradient-to-r from-[#1F85CD] to-[#6EC3FC] text-white px-3 sm:px-4 lg:px-6 py-3 sm:py-4 lg:py-5">
+    <div className="bg-gradient-to-r from-[#1F85CD] to-[#6EC3FC] text-white px-3 sm:px-4 md:px-6 lg:px-6 py-3 sm:py-4 md:py-5 lg:py-5">
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-1.5 sm:gap-3">
-          <div className="w-6 h-6 sm:w-8 sm:h-10 rounded-full flex items-center justify-center">
+        <div className="flex items-center gap-1.5 sm:gap-3 md:gap-4">
+          <div className="w-6 h-6 sm:w-8 sm:h-10 md:w-10 md:h-12 rounded-full flex items-center justify-center">
            <Image 
                        src="/Logo.png" 
                        alt="Psychology Buddy Logo" 
                        width={46}
                        height={46}
-                       className="w-[20px] h-[20px] sm:w-[30px] sm:h-[30px] md:w-[36px] md:h-[36px]"
+                       className="w-[20px] h-[20px] sm:w-[30px] sm:h-[30px] md:w-[40px] md:h-[40px]"
                      />
           </div>
           <div>
-            <h2 className="text-sm sm:text-lg md:text-[24px] font-semibold">Psychology Buddy</h2>
-            <p className="text-xs sm:text-xs md:text-[14px] text-[#F5F5F5] opacity-90 hidden sm:block">Your Emotional Support Companion</p>
+            <h2 className="text-sm sm:text-lg md:text-xl lg:text-[24px] font-semibold">Psychology Buddy</h2>
+            <p className="text-xs sm:text-xs md:text-sm lg:text-[14px] text-[#F5F5F5] opacity-90 hidden sm:block">Your Emotional Support Companion</p>
           </div>
         </div>
-        <div className="flex gap-1 sm:gap-2">
-          {/* <button
-            onClick={onMoodCheckinClick}
-            className="px-2 py-1 sm:px-3 sm:py-1.5 bg-white/20 hover:bg-white/30 rounded-lg text-[11px] sm:text-sm font-medium transition-colors"
-          >
-            Mood
-          </button> */}
+        <div className="flex gap-1 sm:gap-2 md:gap-3">
           <button
             onClick={onSummariesClick}
-            className="flex items-center gap-1 sm:gap-2 px-2 py-1.5 sm:px-3 sm:py-2 sm:w-[146px] sm:h-[45px] bg-[#76C5FB] hover:bg-[#93cff8] rounded-[8px] sm:rounded-[12px] text-white text-[12px] sm:text-[16px] font-medium transition-colors shadow-sm"
+            className="flex items-center gap-1 sm:gap-2 md:gap-3 px-2 py-1.5 sm:px-3 sm:py-2 md:px-4 md:py-2.5 sm:w-[146px] sm:h-[45px] md:w-[160px] md:h-[50px] bg-[#76C5FB] hover:bg-[#93cff8] rounded-[8px] sm:rounded-[12px] text-white text-[12px] sm:text-[16px] font-medium transition-colors shadow-sm"
           >
-            <Image src="/Icons/ion_book-outline.png" alt="Book icon" width={14} height={14} className="filter brightness-0 invert w-3 h-3 sm:w-4 sm:h-4"/>
+            <Image src="/Icons/ion_book-outline.png" alt="Book icon" width={14} height={14} className="filter brightness-0 invert w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5"/>
             <span className="hidden sm:inline">Summaries</span>
-            {/* <span className="sm:hidden"></span> */}
           </button>
         </div>
       </div>
@@ -486,7 +496,7 @@ const Disclaimer = memo(function Disclaimer() {
             <path d="M9 21h6v1c0 .55-.45 1-1 1h-4c-.55 0-1-.45-1-1v-1z"/>
           </svg>
         </div>
-        <p className="text-[10px] sm:text-xs text-gray-500 text-center">
+        <p className="text-[10px] sm:text-xs md:text-sm text-gray-500 text-center">
           <span className="font-semibold">Remember:</span> Psychology Buddy provides supportive guidance, but if you're experiencing a crisis, please reach out to your school counselor or a trusted adult and this chat data appears to you only.
         </p>
       </div>
@@ -523,6 +533,9 @@ export default function ChatInterface({
   const [showSummaryImport, setShowSummaryImport] = useState(true);
   const [quickReplies, setQuickReplies] = useState<string[]>([]);
   
+  // Input ref for auto-focus after sending message
+  const inputRef = useRef<HTMLInputElement>(null);
+  
   // Check if user is importing from reflections page
   const [isImportingFromReflections, setIsImportingFromReflections] = useState(false);
 
@@ -557,8 +570,8 @@ export default function ChatInterface({
           mood: currentMood,
           triggers: currentTriggers,
           notes: currentNotes,
-          botMessage, // Pass the bot's last message for context
-          lastMessages: currentMessages.slice(-3),
+          botMessage,
+          lastMessages: currentMessages.slice(-8), // Extended for concern/crisis detection
           messageCount: currentMessages.length,
         }),
       });
@@ -678,8 +691,17 @@ export default function ChatInterface({
 
   // Event handlers
   const handleQuickReply = useCallback((reply: string) => {
-    setInput(reply);
-  }, [setInput]);
+    if (reply.trim() && user) {
+      // Hide summary import when student sends a message
+      setShowSummaryImport(false);
+      // Send the message directly instead of populating the input box
+      sendMessage(reply);
+      // Focus the input field after sending
+      setTimeout(() => {
+        inputRef.current?.focus();
+      }, 100);
+    }
+  }, [sendMessage, user]);
 
   const handleImportLastConversation = useCallback((topic?: string) => {
     console.log('Import clicked - lastSession:', lastSession)
@@ -726,6 +748,10 @@ export default function ChatInterface({
       setShowSummaryImport(false);
       sendMessage(hookInput);
       setInput("");
+      // Focus the input field after sending
+      setTimeout(() => {
+        inputRef.current?.focus();
+      }, 100);
     }
   }, [hookInput, sendMessage, user, setInput]);
 
@@ -742,6 +768,25 @@ export default function ChatInterface({
     setIsLoading(hookIsLoading);
   }, [hookIsLoading]);
 
+  // Auto-focus input field after bot responds (when loading finishes)
+  React.useEffect(() => {
+    if (!hookIsLoading && inputRef.current) {
+      // Small delay to ensure DOM is updated
+      const timer = setTimeout(() => {
+        inputRef.current?.focus();
+      }, 150);
+      return () => clearTimeout(timer);
+    }
+  }, [hookIsLoading]);
+
+  // Auto-focus input field on mount
+  React.useEffect(() => {
+    const timer = setTimeout(() => {
+      inputRef.current?.focus();
+    }, 500); // Longer delay for initial mount
+    return () => clearTimeout(timer);
+  }, []);
+
   // Debug logging only - use-chat.ts handles all chat initialization
   React.useEffect(() => {
     console.log('ChatInterface Debug:', {
@@ -755,137 +800,40 @@ export default function ChatInterface({
     });
   }, [user?.id, messages.length, hookSessionId, hookIsLoading]);
 
-  // State for exercise suggestions - not persisted, always starts hidden
-  const [showExerciseSuggestions, setShowExerciseSuggestions] = useState(false);
-  const [exerciseSuggestions, setExerciseSuggestions] = useState<any[]>([]);
-  const [studentMessageCount, setStudentMessageCount] = useState(0);
-
-  // Track when user sends messages and count them - optimized to only run when last message changes
-  React.useEffect(() => {
-    if (messages.length > 0) {
-      const lastMessage = messages[messages.length - 1];
-      if (lastMessage.sender === 'student') {
-        setStudentMessageCount(prev => {
-          const newCount = prev + 1;
-          // Show exercise suggestions after 5 student messages
-          if (newCount === 5) {
-            fetchExerciseSuggestions();
-          }
-          return newCount;
-        });
-      }
-    }
-  }, [messages.length]);
-
-  // Fetch exercise suggestions
-  const fetchExerciseSuggestions = async () => {
-    try {
-      const [musicRes, meditationRes, articlesRes] = await Promise.all([
-        fetch('/api/student/music/recommended'),
-        fetch('/api/student/meditation'),
-        fetch('/api/articles')
-      ]);
-
-      // Handle different response formats
-      let musicData = [];
-      let meditationData = [];
-      let articlesData = [];
-
-      if (musicRes.ok) {
-        const musicResult = await musicRes.json();
-        musicData = Array.isArray(musicResult) ? musicResult : (musicResult.data || musicResult.music || []);
-      }
-
-      if (meditationRes.ok) {
-        const meditationResult = await meditationRes.json();
-        meditationData = Array.isArray(meditationResult) ? meditationResult : (meditationResult.data || meditationResult.meditations || []);
-      }
-
-      if (articlesRes.ok) {
-        const articlesResult = await articlesRes.json();
-        articlesData = Array.isArray(articlesResult) ? articlesResult : (articlesResult.data || articlesResult.articles || []);
-      }
-
-      const suggestions = [
-        ...musicData.slice(0, 2).map((item: any) => ({
-          type: 'music',
-          title: item.title || 'Music Therapy',
-          description: item.description || 'Calming music session',
-          url: '/students/selfhelptools/music',
-          icon: '🎵'
-        })),
-        ...meditationData.slice(0, 2).map((item: any) => ({
-          type: 'meditation',
-          title: item.title || 'Meditation',
-          description: item.description || 'Guided meditation',
-          url: '/students/selfhelptools/meditation',
-          icon: '🧘'
-        })),
-        ...articlesData.slice(0, 2).map((item: any) => ({
-          type: 'article',
-          title: item.title || 'Helpful Article',
-          description: item.description || 'Educational content',
-          url: '/students/library',
-          icon: '📚'
-        })),
-        {
-          type: 'journaling',
-          title: 'Journaling',
-          description: 'Express your thoughts through writing',
-          url: '/students/selfhelptools/journaling',
-          icon: '📝'
-        }
-      ].slice(0, 5); // Limit to 4 suggestions
-
-      setExerciseSuggestions(suggestions);
-      setShowExerciseSuggestions(true);
-    } catch (error) {
-      console.error('Error fetching exercise suggestions:', error);
-      // Fallback to default suggestions if API fails
-      const fallbackSuggestions = [
-        {
-          type: 'music',
-          title: 'Music Therapy',
-          description: 'Calming music to help you relax',
-          url: '/students/selfhelptools/music',
-          icon: '🎵'
-        },
-        {
-          type: 'meditation',
-          title: 'Meditation',
-          description: 'Guided meditation exercises',
-          url: '/students/selfhelptools/meditation',
-          icon: '🧘'
-        },
-        {
-          type: 'journaling',
-          title: 'Journaling',
-          description: 'Write down your thoughts and feelings',
-          url: '/students/selfhelptools/journaling',
-          icon: '📝'
-        },
-        {
-          type: 'article',
-          title: 'Helpful Articles',
-          description: 'Educational content about mental health',
-          url: '/students/library',
-          icon: '📚'
-        }
-      ];
-      setExerciseSuggestions(fallbackSuggestions);
-      setShowExerciseSuggestions(true);
-    }
-  };
+  // ==========================================
+  // NEW: Intelligent Exercise Recommendations
+  // Based on conversation state, not message count
+  // ==========================================
+  const {
+    shouldShowRecommendations,
+    recommendations,
+    introductionText,
+    conversationState,
+    dismiss: dismissRecommendations,
+    markShown: markRecommendationsShown
+  } = useExerciseRecommendations({
+    messages: messages,
+    enabled: !!user // Only enable when user is authenticated
+  });
 
   // Handle suggestion click
-  const handleSuggestionClick = (suggestion: any) => {
+  const handleSuggestionClick = useCallback((suggestion: any) => {
+    markRecommendationsShown(); // Mark as shown when user clicks
+    dismissRecommendations(); // Dismiss the component
     router.push(suggestion.url);
-  };
+  }, [markRecommendationsShown, dismissRecommendations, router]);
 
-  // Dismiss suggestions
-  const dismissSuggestions = () => {
-    setShowExerciseSuggestions(false);
-  };
+  // Log conversation state for debugging (optional)
+  React.useEffect(() => {
+    if (conversationState) {
+      console.log('[ChatInterface] Conversation State:', {
+        stage: conversationState.stage,
+        emotion: conversationState.emotion,
+        readinessScore: conversationState.readinessScore,
+        shouldShow: shouldShowRecommendations
+      });
+    }
+  }, [conversationState, shouldShowRecommendations]);
 
   // Auto-import summary text into input when coming from summaries page
   // REMOVED: We don't want to automatically set the input when importing from reflections
@@ -926,13 +874,13 @@ export default function ChatInterface({
   return (
     <div className="max-h-screen bg-[#F8F9FA]">
       {/* Back Button */}
-      <div className="max-w-6xl mx-auto pt-6 sm:pt-5 px-3 sm:px-4 lg:px-4">
+      <div className="max-w-6xl mx-auto pt-6 sm:pt-7 px-3 sm:px-4 lg:px-4">
         <BackToDashboard />
       </div>
 
       {/* Chat Container */}
-      <div className="max-w-6xl mx-auto px-3 sm:px-4 lg:px-9 py-3 sm:py-4 lg:py-1">
-        <div className="flex flex-col h-[calc(100vh-60px)] sm:h-[calc(100vh-80px)] lg:h-[calc(100vh-150px)] bg-white rounded-xl sm:rounded-2xl shadow-lg overflow-hidden">
+      <div className="max-w-6xl mx-auto px-3 sm:px-4 md:px-6 lg:px-9 py-3 sm:py-1 lg:py-1">
+        <div className="flex flex-col h-[calc(100vh-60px)] sm:h-[calc(100vh-80px)] md:h-[calc(100vh-120px)] lg:h-[calc(100vh-150px)] bg-white rounded-xl sm:rounded-2xl shadow-lg overflow-hidden">
           {/* Chat Header */}
           <ChatHeader onSummariesClick={handleSummariesClick} onMoodCheckinClick={handleMoodCheckinClick} />
 
@@ -947,20 +895,20 @@ export default function ChatInterface({
           )}
 
           {/* Chat Area */}
-          <div ref={hookChatRef} className="flex-1 overflow-y-auto px-3 sm:px-4 lg:px-15 py-3 sm:py-4 lg:py-6 bg-white">
+          <div ref={hookChatRef} className="flex-1 overflow-y-auto px-3 sm:px-4 md:px-8 lg:px-15 py-3 sm:py-4 md:py-6 lg:py-6 bg-white">
            
               
 
             {messages.length === 0 && (
-              <div className="flex flex-col items-center justify-center h-full text-center px-4">
-                <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-gradient-to-br from-[#1B9EE0] to-[#4FC3F7] flex items-center justify-center mb-3 sm:mb-4">
-                  <svg width="28" height="28" className="sm:w-8 sm:h-8" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
+              <div className="flex flex-col items-center justify-center h-full text-center px-4 md:px-10">
+                <div className="w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 rounded-full bg-gradient-to-br from-[#1B9EE0] to-[#4FC3F7] flex items-center justify-center mb-3 sm:mb-4 md:mb-6 shadow-md">
+                  <svg width="28" height="28" className="sm:w-8 sm:h-8 md:w-10 md:h-10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
                     <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
                     <circle cx="12" cy="7" r="4" />
                   </svg>
                 </div>
-                <h3 className="text-lg sm:text-xl font-semibold text-gray-700 mb-1 sm:mb-2">Hi there! 👋</h3>
-                <p className="text-sm sm:text-base text-gray-500 max-w-sm sm:max-w-md">
+                <h3 className="text-lg sm:text-xl md:text-2xl font-semibold text-gray-700 mb-1 sm:mb-2 md:mb-3">Hi there! 👋</h3>
+                <p className="text-sm sm:text-base md:text-lg text-gray-500 max-w-sm sm:max-w-md md:max-w-lg leading-relaxed">
                   I&apos;m here to listen and support you. Feel free to share what&apos;s on your mind.
                 </p>
               </div>
@@ -988,12 +936,13 @@ export default function ChatInterface({
             {/* Typing Indicator */}
             {isLoading && <TypingIndicator />}
 
-            {/* Exercise Suggestions */}
-            {showExerciseSuggestions && (
+            {/* Exercise Suggestions - NEW: State-based recommendations */}
+            {shouldShowRecommendations && recommendations.length > 0 && (
               <ExerciseSuggestions
-                suggestions={exerciseSuggestions}
+                suggestions={recommendations}
+                introText={introductionText}
                 onSuggestionClick={handleSuggestionClick}
-                onDismiss={dismissSuggestions}
+                onDismiss={dismissRecommendations}
               />
             )}
 
@@ -1007,6 +956,7 @@ export default function ChatInterface({
 
           {/* Chat Input */}
           <ChatInput
+            ref={inputRef}
             input={hookInput}
             onInputChange={setInput}
             onSend={handleSendMessage}

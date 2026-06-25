@@ -50,12 +50,18 @@ const centerTextPlugin = {
     ctx.textBaseline = "middle";
     ctx.fillStyle = "#686D70"; // ⭐ NOW COLOR WORKS
 
+    const chartWidth = chart.width;
+    const isSmall = chartWidth < 220;
+    const isLarge = chartWidth > 250;
+
     // Main value
-    ctx.font = "bold 18px Inter, sans-serif";
+    const mainFontSize = isSmall ? 16 : isLarge ? 22 : 19;
+    ctx.font = `bold ${mainFontSize}px Inter, sans-serif`;
     ctx.fillText(percentageText, centerX, centerY - 5);
 
     // Label name
-    ctx.font = "12px Inter, sans-serif";
+    const labelFontSize = isSmall ? 10 : isLarge ? 14 : 12;
+    ctx.font = `${labelFontSize}px Inter, sans-serif`;
     ctx.fillText(labelText, centerX, centerY + 15);
 
     ctx.restore();
@@ -172,15 +178,15 @@ export default function EmotionalPatterns() {
         </h3>
       </div>
 
-      {/* PIE + LEGEND (SIDE BY SIDE) */}
-      <div className="flex items-center justify-between gap-4 sm:gap-6 md:gap-8 mb-6">
+      {/* PIE + LEGEND (SIDE BY SIDE ON LAPTOP+) */}
+      <div className="flex flex-col lg:flex-row items-center lg:items-center justify-between gap-6 sm:gap-8 lg:gap-10 mb-8">
         {/* PIE CHART */}
-        <div className="h-[180px] w-[180px] sm:h-[200px] sm:w-[200px] md:h-[220px] md:w-[220px] lg:h-[234px] lg:w-[234px] flex-shrink-0">
+        <div className="h-[200px] w-[200px] sm:h-[220px] sm:w-[220px] md:h-[240px] md:w-[240px] lg:h-[260px] lg:w-[260px] flex-shrink-0 relative">
           <Pie data={triggerChartData} options={triggerChartOptions} />
         </div>
 
         {/* CUSTOM LEGEND */}
-        <div className="flex flex-col gap-2 sm:gap-3 flex-1 min-w-0">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-1 gap-x-8 gap-y-3 sm:gap-y-4 flex-1 w-full min-w-0 mt-4 lg:mt-0">
           {data.triggerPatterns.map((item, i) => (
             <div key={i} className="flex items-center gap-2 sm:gap-3">
               {/* Color dot */}
@@ -192,11 +198,11 @@ export default function EmotionalPatterns() {
                 }}
               ></div>
 
-              <span className="text-[13px] sm:text-[14px] md:text-[15px] text-[#686D70] flex-1 min-w-0 truncate">
+              <span className="text-[14px] sm:text-[15px] md:text-[16px] text-[#686D70] flex-1 min-w-0 truncate">
                 {item.trigger}
               </span>
 
-              <span className="text-[13px] sm:text-[14px] md:text-[15px] text-[#686D70] font-medium flex-shrink-0">
+              <span className="text-[14px] sm:text-[15px] md:text-[16px] text-[#686D70] font-semibold flex-shrink-0">
                 {item.percentage}%
               </span>
             </div>
@@ -211,12 +217,12 @@ export default function EmotionalPatterns() {
           <h3 className="text-[13px] sm:text-[14px] md:text-[16px] font-semibold text-[#3A3A3A]">Monthly Insight</h3>
         </div>
 
-        <p className="text-[11px] sm:text-xs md:text-sm text-gray-700 leading-relaxed">
+        <p className="text-[11px] sm:text-xs md:text-[11px] text-gray-700 leading-relaxed">
           {data.insights.primary}
         </p>
 
         {data.insights.secondary && (
-          <p className="text-[11px] sm:text-xs md:text-sm text-gray-700 leading-relaxed mt-1">
+          <p className="text-[11px] sm:text-xs md:text-[11px] text-gray-700 leading-relaxed mt-1">
             {data.insights.secondary}
           </p>
         )}
@@ -224,7 +230,7 @@ export default function EmotionalPatterns() {
         <div className="mt-3 border-t border-green-200 pt-2">
           <div className="flex items-start gap-2">
             <TrendingUp className="h-3 w-3 sm:h-3.5 sm:w-3.5 md:h-4 md:w-4 text-green-600 mt-0.5" />
-            <p className="text-[11px] sm:text-xs md:text-sm text-gray-700 leading-relaxed">
+            <p className="text-[11px] sm:text-xs md:text-[11px] text-gray-700 leading-relaxed">
               <span className="font-medium">Recommendation:</span>{" "}
               {data.insights.recommendation}
             </p>

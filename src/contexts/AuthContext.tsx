@@ -3,11 +3,19 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 
 interface User {
-  adminProfile?: any;
+  adminProfile?: {
+    department?: string;
+    profileImageUrl?: string;
+    isPrimaryAdmin?: boolean;
+    adminPermissions?: {
+      permission: { name: string };
+    }[];
+  };
   counselorProfile?: {
     department?: string;
     specialization?: string;
     availability?: string;
+    profileImageUrl?: string;
   };
   parentProfile?: {
     id?: string;
@@ -124,12 +132,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   useEffect(() => {
-    // Skip auth check on landing pages
-    const landingPages = ['/', '/about', '/contact', '/forschools', '/termsandconditions'];
-    if (typeof window !== 'undefined' && landingPages.includes(window.location.pathname)) {
-      setLoading(false);
-      return;
-    }
     refreshUser();
   }, []);
 
@@ -147,18 +149,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         document.removeEventListener('visibilitychange', handleVisibilityChange);
       };
     }
-  }, [user]);
+  }, [user?.id]); // Only depend on user.id, not the entire user object
 
-  // Periodically refresh user data every 10 seconds to ensure permissions stay up to date
+  // Periodically refresh user data every 60 seconds to ensure permissions stay up to date
   useEffect(() => {
     if (!user) return;
 
     const interval = setInterval(() => {
       refreshUser();
-    }, 10 * 1000); // 10 seconds
+    }, 60 * 1000); // 60 seconds
 
     return () => clearInterval(interval);
-  }, [user]);
+  }, [user?.id]); // Only depend on user.id, not the entire user object
 
   const value = {
     user,

@@ -18,7 +18,7 @@ export default function BackToDashboard({ className = "" }: BackToDashboardProps
       className={`flex items-center gap-2 text-[#73829A] hover:text-[#1a9bcc] transition-colors p-2 ${className}`}
     >
       <ArrowLeft className="w-4 h-5" />
-      <span className="text-[13px] sm:text-[16px]">Back to Dashboard</span>
+      <span className="text-[13px] sm:text-[16px] md:text-[14px] lg:text-[16px]">Back to Dashboard</span>
     </button>
   );
 }

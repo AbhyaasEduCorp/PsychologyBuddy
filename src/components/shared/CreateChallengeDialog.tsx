@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useToast } from "@/src/hooks/use-toast";
+import { useToast } from "@/components/ui/use-toast";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
 import {
   Dialog,
@@ -22,7 +22,7 @@ import {
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
-import { Calendar as CalendarIcon } from "lucide-react";
+import { Calendar as CalendarIcon, Plus, X } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import {
   Popover,
@@ -34,9 +34,11 @@ import { cn } from "@/lib/utils";
 function CreateChallengeDialog({
   open,
   onOpenChange,
+  isAdmin = false,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  isAdmin?: boolean;
 }) {
   const [tool, setTool] = useState("journaling");
   const [journalType, setJournalType] = useState<"write" | "audio" | "art">("audio");
@@ -46,6 +48,7 @@ function CreateChallengeDialog({
   const [endDate, setEndDate] = useState<Date>();
   const [targetValue, setTargetValue] = useState<number>(1);
   const [targetUnit, setTargetUnit] = useState<string>("ENTRIES");
+  const [instructionPoints, setInstructionPoints] = useState<string[]>([""]);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -85,16 +88,38 @@ function CreateChallengeDialog({
 
   const Req = () => <span className="text-[#EF4444]">*</span>;
 
+  const addInstructionPoint = () => {
+    setInstructionPoints([...instructionPoints, ""]);
+  };
+
+  const removeInstructionPoint = (index: number) => {
+    if (instructionPoints.length > 1) {
+      setInstructionPoints(instructionPoints.filter((_, i) => i !== index));
+    }
+  };
+
+  const updateInstructionPoint = (index: number, value: string) => {
+    const updated = [...instructionPoints];
+    updated[index] = value;
+    setInstructionPoints(updated);
+  };
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
+    
+    // Join instruction points into a numbered list
+    const instructions = instructionPoints
+      .filter(point => point.trim() !== "")
+      .map((point, index) => `${index + 1}. ${point}`)
+      .join("\n");
     
     const challengeData = {
       name: formData.get("ch-name") as string,
       description: formData.get("ch-desc") as string,
       startsAt: startDate?.toISOString(),
       endsAt: endDate?.toISOString(),
-      instructions: formData.get("ch-instructions") as string,
+      instructions: instructions,
       requiresJournaling: tool === "journaling",
       requiresMeditation: tool === "meditation",
       requiresMusic: tool === "music",
@@ -118,7 +143,8 @@ function CreateChallengeDialog({
     };
 
     try {
-      const response = await fetch("/api/counselor/challenges", {
+      const endpoint = isAdmin ? '/api/challenges' : '/api/counselor/challenges';
+      const response = await fetch(endpoint, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -129,7 +155,7 @@ function CreateChallengeDialog({
       if (!response.ok) throw new Error("Failed to create challenge");
 
       toast({ title: "Challenge created successfully" });
-      queryClient.invalidateQueries({ queryKey: ["counselor-challenges"] });
+      queryClient.invalidateQueries({ queryKey: isAdmin ? ["admin-challenges"] : ["counselor-challenges"] });
       onOpenChange(false);
     } catch (error) {
       toast({ 
@@ -142,7 +168,7 @@ function CreateChallengeDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] max-w-[560px] overflow-y-auto">
+      <DialogContent className="max-h-[90vh] max-w-[560px] scrollbar-thin overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-xl">Create New Challenges</DialogTitle>
           <DialogDescription>Design a challenge to assign to your students.</DialogDescription>
@@ -164,6 +190,156 @@ function CreateChallengeDialog({
               Description <Req />
             </Label>
             <Textarea id="ch-desc" name="ch-desc" className="min-h-[100px] bg-[#F1F5F9]/40" required />
+          </div>
+
+          <div className="space-y-1.5">
+            <Label>
+              Instructions <Req />
+            </Label>
+            <div className="space-y-2">
+              {instructionPoints.map((point, index) => (
+                <div key={index} className="flex gap-2">
+                  <div className="flex h-10 w-8 shrink-0 items-center justify-center rounded-md bg-[#F1F5F9] text-sm font-medium text-[#64748B]">
+                    {index + 1}
+                  </div>
+                  <Input
+                    value={point}
+                    onChange={(e) => updateInstructionPoint(index, e.target.value)}
+                    placeholder={`Step ${index + 1}`}
+                    className="flex-1 bg-[#F1F5F9]/40"
+                    required={index === 0}
+                  />
+                  {instructionPoints.length > 1 && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => removeInstructionPoint(index)}
+                      className="h-10 w-10 text-[#EF4444] hover:bg-[#EF4444]/10 hover:text-[#EF4444]"
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
+              ))}
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={addInstructionPoint}
+                className="w-full gap-2 border-dashed"
+              >
+                <Plus className="h-4 w-4" />
+                Add Step
+              </Button>
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            <Label>
+              Challenge <Req />
+            </Label>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label className="text-sm font-normal">
+                  Tool <Req />
+                </Label>
+                <Select value={tool} onValueChange={setTool}>
+                  <SelectTrigger className="w-full bg-[#F1F5F9]/40">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="journaling">Journaling</SelectItem>
+                    <SelectItem value="meditation">Meditation</SelectItem>
+                    <SelectItem value="music">Music</SelectItem>
+                    <SelectItem value="psychoeducation">Psychoeducation</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Show categories dropdown for non-journaling tools */}
+              {tool !== "journaling" && (
+                <div className="space-y-1.5">
+                  <Label className="text-sm font-normal">
+                    Category <Req />
+                  </Label>
+                  <Select value={selectedCategory} onValueChange={setSelectedCategory} disabled={categoriesLoading}>
+                    <SelectTrigger className="w-full bg-[#F1F5F9]/40">
+                      <SelectValue placeholder={categoriesLoading ? "Loading categories..." : "Select category"} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {categories.map((category: any) => (
+                        <SelectItem key={category.id} value={category.name}>
+                          {category.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+            </div>
+
+            {/* Show journaling types when journaling is selected */}
+            {tool === "journaling" && (
+              <div className="flex gap-2 rounded-lg bg-[#F1F5F9]/40 p-2">
+                {(
+                  [
+                    { id: "write", label: "Write journal" },
+                    { id: "audio", label: "Audio Journal" },
+                    { id: "art", label: "Art Journal" },
+                  ] as const
+                ).map((o) => (
+                  <button
+                    key={o.id}
+                    type="button"
+                    onClick={() => setJournalType(o.id)}
+                    className={`rounded-md border px-4 py-2 text-sm transition-colors ${
+                      journalType === o.id
+                        ? "border-transparent bg-[#3B82F6] text-[#FFFFFF]"
+                        : "border-[#E2E8F0] bg-[#FFFFFF] text-[#1E293B] hover:bg-[#F1F5F9]"
+                    }`}
+                  >
+                    {o.label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <Label htmlFor="ch-target-value">
+                Target Value <Req />
+              </Label>
+              <Input
+                id="ch-target-value"
+                name="ch-target-value"
+                type="number"
+                min="1"
+                value={targetValue}
+                onChange={(e) => setTargetValue(parseInt(e.target.value) || 1)}
+                className="bg-[#F1F5F9]/40"
+                required
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="ch-target-unit">
+                Target Unit <Req />
+              </Label>
+              <Select value={targetUnit} onValueChange={setTargetUnit}>
+                <SelectTrigger className="w-full bg-[#F1F5F9]/40">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ENTRIES">Entries</SelectItem>
+                  <SelectItem value="MINUTES">Minutes</SelectItem>
+                  <SelectItem value="SESSIONS">Sessions</SelectItem>
+                  <SelectItem value="ARTICLES">Articles</SelectItem>
+                  <SelectItem value="DAYS">Days</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
@@ -222,140 +398,6 @@ function CreateChallengeDialog({
               </Popover>
             </div>
           </div>
-
-          <div className="space-y-1.5">
-            <Label htmlFor="ch-instructions">
-              Instructions <Req />
-            </Label>
-            <Textarea
-              id="ch-instructions"
-              name="ch-instructions"
-              className="min-h-[140px] bg-[#F1F5F9]/40"
-              placeholder={`Step by step guidance. One step per line, e.g.\n  1. Open your journal each evening.\n  2. Write down 3 things you're grateful for.\n  3. Reflect briefly on each.`}
-              required
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-1.5">
-              <Label htmlFor="ch-target-value">
-                Target Value <Req />
-              </Label>
-              <Input
-                id="ch-target-value"
-                name="ch-target-value"
-                type="number"
-                min="1"
-                value={targetValue}
-                onChange={(e) => setTargetValue(parseInt(e.target.value) || 1)}
-                className="bg-[#F1F5F9]/40"
-                required
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="ch-target-unit">
-                Target Unit <Req />
-              </Label>
-              <Select value={targetUnit} onValueChange={setTargetUnit}>
-                <SelectTrigger className="w-full bg-[#F1F5F9]/40">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="ENTRIES">Entries</SelectItem>
-                  <SelectItem value="MINUTES">Minutes</SelectItem>
-                  <SelectItem value="SESSIONS">Sessions</SelectItem>
-                  <SelectItem value="ARTICLES">Articles</SelectItem>
-                  <SelectItem value="DAYS">Days</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          <div className="space-y-3">
-            <Label>
-              Challenge <Req />
-            </Label>
-
-            <div className="space-y-1.5">
-              <Label className="text-sm font-normal">
-                Tool <Req />
-              </Label>
-              <Select value={tool} onValueChange={setTool}>
-                <SelectTrigger className="w-[200px]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="journaling">Journaling</SelectItem>
-                  <SelectItem value="meditation">Meditation</SelectItem>
-                  <SelectItem value="music">Music</SelectItem>
-                  <SelectItem value="psychoeducation">Psychoeducation</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Show journaling types when journaling is selected */}
-            {tool === "journaling" && (
-              <div className="flex gap-2 rounded-lg bg-[#F1F5F9]/40 p-2">
-                {(
-                  [
-                    { id: "write", label: "Write journal" },
-                    { id: "audio", label: "Audio Journal" },
-                    { id: "art", label: "Art Journal" },
-                  ] as const
-                ).map((o) => (
-                  <button
-                    key={o.id}
-                    type="button"
-                    onClick={() => setJournalType(o.id)}
-                    className={`rounded-md border px-4 py-2 text-sm transition-colors ${
-                      journalType === o.id
-                        ? "border-transparent bg-[#3B82F6] text-[#FFFFFF]"
-                        : "border-[#E2E8F0] bg-[#FFFFFF] text-[#1E293B] hover:bg-[#F1F5F9]"
-                    }`}
-                  >
-                    {o.label}
-                  </button>
-                ))}
-              </div>
-            )}
-
-            {/* Show categories dropdown for non-journaling tools */}
-            {tool !== "journaling" && (
-              <div className="space-y-1.5">
-                <Label className="text-sm font-normal">
-                  Category <Req />
-                </Label>
-                <Select value={selectedCategory} onValueChange={setSelectedCategory} disabled={categoriesLoading}>
-                  <SelectTrigger className="w-[200px]">
-                    <SelectValue placeholder={categoriesLoading ? "Loading categories..." : "Select category"} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {categories.map((category: any) => (
-                      <SelectItem key={category.id} value={category.name}>
-                        {category.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-          </div>
-
-          {tool === "journaling" && (
-            <div className="space-y-1.5">
-              <Label htmlFor="ch-prompt">
-                Journaling Prompt <Req />
-              </Label>
-              <Textarea
-                id="ch-prompt"
-                name="ch-prompt"
-                className="min-h-[100px] bg-[#F1F5F9]/40"
-                placeholder="Type journaling prompt here ..."
-              />
-            </div>
-          )}
-
-          
 
           <div className="flex justify-end gap-3 pt-2">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>

@@ -103,6 +103,14 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       console.error('Failed to update streak after article completion:', streakError);
     }
 
+    // Update challenge progress for article completion
+    try {
+      const { ActivityTracker } = await import('@/src/services/challenges/activity-tracker');
+      await ActivityTracker.trackArticleCompletion(student.id, id);
+    } catch (challengeError) {
+      console.error('Failed to update challenge progress after article completion:', challengeError);
+    }
+
     // Evaluate badges for article completion activity
     try {
       await BadgeService.evaluateUserBadges(student.id);

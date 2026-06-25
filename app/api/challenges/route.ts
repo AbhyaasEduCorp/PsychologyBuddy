@@ -14,6 +14,15 @@ const createChallengeSchema = z.object({
   requiresMusic: z.boolean().default(false),
   requiresPsychoeducation: z.boolean().default(false),
   requiresJournaling: z.boolean().default(false),
+  category: z.string().optional(),
+  assignmentType: z.enum(["INDIVIDUAL", "CLASS", "SCHOOL"]).default("INDIVIDUAL"),
+  targetClassId: z.string().optional(),
+  targetSchoolId: z.string().optional(),
+  targetValue: z.number().default(1),
+  targetUnit: z.string().default("ENTRIES"),
+  challengeType: z.string().default("DAILY"),
+  moduleType: z.string().optional(),
+  journalType: z.string().optional(),
   isActive: z.boolean().default(true),
 });
 
@@ -33,6 +42,34 @@ export const GET = withPermission({
     if (user.role.name === 'SUPERADMIN') {
       // Super Admin can see all challenges from all schools
       challenges = await prisma.challenge.findMany({
+        include: {
+          _count: {
+            select: {
+              userChallenges: true,
+            }
+          },
+          userChallenges: {
+            select: {
+              status: true,
+            }
+          },
+          creator: {
+            select: {
+              firstName: true,
+              lastName: true,
+              role: {
+                select: {
+                  name: true,
+                }
+              }
+            }
+          },
+          school: {
+            select: {
+              name: true,
+            }
+          }
+        },
         orderBy: {
           createdAt: 'desc',
         },
@@ -42,6 +79,34 @@ export const GET = withPermission({
       challenges = await prisma.challenge.findMany({
         where: {
           schoolId: user.schoolId,
+        },
+        include: {
+          _count: {
+            select: {
+              userChallenges: true,
+            }
+          },
+          userChallenges: {
+            select: {
+              status: true,
+            }
+          },
+          creator: {
+            select: {
+              firstName: true,
+              lastName: true,
+              role: {
+                select: {
+                  name: true,
+                }
+              }
+            }
+          },
+          school: {
+            select: {
+              name: true,
+            }
+          }
         },
         orderBy: {
           createdAt: 'desc',
@@ -73,6 +138,10 @@ export const GET = withPermission({
       schoolId: challenge.schoolId,
       createdAt: challenge.createdAt,
       updatedAt: challenge.updatedAt,
+      _count: challenge._count,
+      userChallenges: challenge.userChallenges,
+      creator: challenge.creator,
+      school: challenge.school,
     }));
 
     return NextResponse.json({
@@ -108,9 +177,12 @@ export const POST = withPermission({
       schoolId = user.schoolId;
     }
 
+    // Exclude journalType from the data sent to Prisma (it's not a database field)
+    const { journalType, ...challengeData } = validatedData;
+
     const challenge = await prisma.challenge.create({
       data: {
-        ...validatedData,
+        ...challengeData,
         createdBy: user.id,
         schoolId,
       } as any,
@@ -173,30 +245,15 @@ export const PUT = withPermission({
       );
     }
 
-    const validatedData = updateChallengeSchema.parse(updateData);
+    // Validate data and prepare for Prisma update
+    const validatedData: any = updateChallengeSchema.parse(updateData);
 
-    // Check if challenge exists and user has permission
-    const existingChallenge = await prisma.challenge.findUnique({
-      where: { id },
-      select: { schoolId: true }
-    });
-
-    if (!existingChallenge) {
-      return NextResponse.json(
-        { success: false, message: 'Challenge not found' },
-        { status: 404 }
-      );
+    // Map string values to Prisma enums if they exist
+    if (validatedData.challengeType) {
+      validatedData.challengeType = validatedData.challengeType as any;
     }
-
-    // Check permission based on role
-    if (user.role.name === 'SUPERADMIN') {
-      // Super Admin can edit all challenges
-    } else if (existingChallenge.schoolId !== user.schoolId) {
-      // School Super Admin and Regular Admin can only edit challenges from their school
-      return NextResponse.json(
-        { success: false, message: 'Permission denied - You can only edit challenges from your school' },
-        { status: 403 }
-      );
+    if (validatedData.targetUnit) {
+      validatedData.targetUnit = validatedData.targetUnit as any;
     }
 
     const challenge = await prisma.challenge.update({

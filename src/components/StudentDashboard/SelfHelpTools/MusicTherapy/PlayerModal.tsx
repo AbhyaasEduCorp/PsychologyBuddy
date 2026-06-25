@@ -16,6 +16,7 @@ export const PlayerModal = ({ card, onClose, categories }: PlayerModalProps) => 
   const [activeTrack, setActiveTrack] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
+  const [hasTrackedCompletion, setHasTrackedCompletion] = useState(false);
 
   const audioRef = useRef<HTMLAudioElement>(null);
 
@@ -89,7 +90,41 @@ export const PlayerModal = ({ card, onClose, categories }: PlayerModalProps) => 
     };
 
     const onMeta = () => setDuration(audio.duration);
-    const onEnd = () => handleNextTrack();
+    const onEnd = async () => {
+      if (!hasTrackedCompletion) {
+        try {
+          console.log('[Music] Track ended, tracking completion...', { 
+            musicId: card.id, 
+            duration: Math.floor(audio.duration) 
+          });
+          
+          // Track music completion via API endpoint
+          const response = await fetch('/api/student/challenges/track', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              type: 'music',
+              itemId: card.id,
+              duration: Math.floor(audio.duration)
+            })
+          });
+
+          if (!response.ok) {
+            const error = await response.json();
+            console.error('[Music] Failed to track completion:', error);
+          } else {
+            const result = await response.json();
+            console.log('[Music] Successfully tracked completion:', result);
+            setHasTrackedCompletion(true);
+          }
+        } catch (error) {
+          console.error('[Music] Failed to track music completion:', error);
+        }
+      }
+      handleNextTrack();
+    };
 
     audio.addEventListener("timeupdate", update);
     audio.addEventListener("loadedmetadata", onMeta);
@@ -100,7 +135,7 @@ export const PlayerModal = ({ card, onClose, categories }: PlayerModalProps) => 
       audio.removeEventListener("loadedmetadata", onMeta);
       audio.removeEventListener("ended", onEnd);
     };
-  }, [activeTrack]);
+  }, [activeTrack, hasTrackedCompletion, card.id]);
 
   /* -----------------------------------------------------------------------
    PLAYER CONTROLS

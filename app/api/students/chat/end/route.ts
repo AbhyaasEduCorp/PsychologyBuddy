@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/src/prisma';
+import { SummaryService } from '@/src/services/chats/summaryService';
 
 export async function POST(req: NextRequest) {
   try {
@@ -30,6 +31,15 @@ export async function POST(req: NextRequest) {
         { error: 'Session not found' },
         { status: 404 }
       );
+    }
+
+    // Generate summary from DB messages if one doesn't exist yet
+    // This is a server-side fallback so the summary is always created
+    // even if the client-side summary API call failed or was never made
+    try {
+      await SummaryService.generateSummaryFromDB(sessionId);
+    } catch (summaryErr) {
+      console.error('Failed to generate summary on chat end:', summaryErr);
     }
 
     return NextResponse.json({

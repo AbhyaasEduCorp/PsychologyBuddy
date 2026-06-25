@@ -3,7 +3,7 @@ import { generateText, streamText } from 'ai'
 
 // Configuration
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY
-const DEFAULT_MODEL = 'gpt-3.5-turbo'
+const DEFAULT_MODEL = 'gpt-4o-mini' // Updated to use current OpenAI model (was gpt-3.5-turbo-16k which is deprecated)
 
 if (!OPENAI_API_KEY) {
   console.warn('OpenAI API key not configured - AI features will be disabled')
@@ -99,7 +99,7 @@ export class AIService {
         })
         .join('\n')
       
-      const prompt = `You are analyzing a therapy chat session between a student and Buddy (AI mental health companion). Based on the following conversation transcript, generate a structured JSON summary.
+      const prompt = `You are analyzing a therapy chat session between a student and Buddy (AI mental health companion). Based on the following conversation transcript, generate a detailed, meaningful JSON summary.
 
 Conversation Transcript:
 ${conversationText}
@@ -107,25 +107,30 @@ ${conversationText}
 Generate a JSON response with exactly these 4 fields:
 {
   "mainTopic": "The primary concern or topic the student wanted to discuss",
-  "conversationStart": "How the conversation actually began - what the student said first and how Buddy responded",
-  "conversationAbout": "The main discussion points and themes that emerged during the conversation between student and Buddy",
-  "reflection": "A thoughtful reflection on the conversation's emotional journey, key insights gained, and how the student's understanding evolved"
+  "conversationStart": "How the conversation began - what the student initially shared and how Buddy responded to open the dialogue",
+  "conversationAbout": "A thorough description of the main discussion points, themes, emotions, and insights that emerged throughout the conversation",
+  "reflection": "A rich, empathetic reflection covering the student's emotional journey, key breakthroughs or realisations, coping strategies discussed, and how the student's perspective evolved"
 }
 
 Requirements:
-- mainTopic: Focus on what the student actually wanted help with (2-6 words)
-- conversationStart: Describe the actual opening exchange and initial concern (1-2 sentences)
-- conversationAbout: Capture the real dialogue flow and key discussion points between both student and Buddy (2-3 sentences)
-- reflection: Provide empathetic insight about the emotional journey and understanding gained (2-3 sentences)
+- mainTopic: 2-5 words (e.g., "Exam Anxiety", "Family Conflict", "Social Stress")
+- conversationStart: 2-3 sentences capturing the opening context and tone (40-60 words)
+- conversationAbout: 3-5 sentences covering the key themes, emotions, and turning points discussed (80-120 words)
+- reflection: 3-5 sentences offering a thoughtful, warm reflection on the emotional journey, insights gained, and any next steps or encouragement (80-120 words)
 
-Important: Analyze the ACTUAL conversation between student and Buddy, not just generic themes. Capture how the discussion evolved, what insights were shared, and the emotional progression.
+Guidelines:
+- Be specific and personal - reference concrete details, feelings, and moments from the actual conversation
+- Write in warm, empathetic, supportive language appropriate for a mental health context
+- Capture both the student's struggles and any positive progress or insights
+- The reflection should feel like a thoughtful counsellor's note, not a dry summary
+- Avoid generic filler phrases; every sentence should add value
 
 Respond ONLY with valid JSON. No additional text, explanations, or formatting.`
       
       const { text } = await generateText({
         model: this.model,
         prompt,
-        temperature: config.temperature || 0.3
+        temperature: config.temperature || 0.5
       })
       
       try {

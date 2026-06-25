@@ -22,6 +22,7 @@ const createChallengeSchema = z.object({
   targetUnit: z.string().default("ENTRIES"),
   challengeType: z.string().default("DAILY"),
   moduleType: z.string().optional(),
+  journalType: z.string().optional(),
   isActive: z.boolean().default(true),
 });
 
@@ -111,9 +112,12 @@ export const POST = withPermission({
     const body = await req.json();
     const validatedData = createChallengeSchema.parse(body);
 
+    // Exclude journalType from the data sent to Prisma (it's not a database field)
+    const { journalType, ...challengeData } = validatedData;
+
     const challenge = await prisma.challenge.create({
       data: {
-        ...validatedData,
+        ...challengeData,
         createdBy: user.id,
         schoolId: user.schoolId,
       } as any,
