@@ -35,8 +35,9 @@ export const POST = withPermission({
     try {
       dataUrl = await uploadToS3(buffer, file.name, file.type);
     } catch (validationError: any) {
+      console.error('S3 upload error:', validationError);
       return NextResponse.json(
-        { error: { message: validationError.message, code: 400 } },
+        { error: { message: validationError.message || 'S3 upload failed', code: 400 } },
         { status: 400 }
       );
     }
