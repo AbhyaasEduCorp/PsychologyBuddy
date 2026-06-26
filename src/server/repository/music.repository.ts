@@ -17,8 +17,8 @@ export class MusicRepository {
   //        MUSIC RESOURCE OPERATIONS
   // ====================================
 
-  async createMusicResource(data: CreateMusicResourceInput & { schoolId?: string }) {
-    const { categoryIds, goalIds, schoolId, ...resourceData } = data;
+  async createMusicResource(data: CreateMusicResourceInput & { schoolId?: string; createdBy?: string }) {
+    const { categoryIds, goalIds, moodIds, schoolId, subtitle, description, createdBy, ...resourceData } = data;
 
     // Validate that categoryIds and goalIds exist before creating
     if (categoryIds && categoryIds.length > 0) {
@@ -33,19 +33,7 @@ export class MusicRepository {
       const invalidCategoryIds = categoryIds.filter(id => !existingCategoryIds.includes(id));
       
       if (invalidCategoryIds.length > 0) {
-        // Get all available categories for a helpful error message
-        const allAvailableCategories = await this.prisma.musicCategory.findMany({
-          where: { status: 'ACTIVE' },
-          select: { id: true, name: true }
-        });
-        
-        const availableCategoriesList = allAvailableCategories.map(c => `${c.id} (${c.name})`).join(', ');
-        
-        return {
-          success: false,
-          message: `Invalid music category IDs: ${invalidCategoryIds.join(', ')}. Available categories: ${availableCategoriesList}`,
-          error: 'Music category validation failed'
-        };
+        throw new Error(`Invalid music category IDs: ${invalidCategoryIds.join(', ')}`);
       }
     }
 
@@ -61,25 +49,30 @@ export class MusicRepository {
       const invalidGoalIds = goalIds.filter(id => !existingGoalIds.includes(id));
       
       if (invalidGoalIds.length > 0) {
-        // Get all available goals for a helpful error message
-        const allAvailableGoals = await this.prisma.musicGoal.findMany({
-          where: { status: 'ACTIVE' },
-          select: { id: true, name: true }
-        });
-        
-        const availableGoalsList = allAvailableGoals.map(g => `${g.id} (${g.name})`).join(', ');
-        
-        return {
-          success: false,
-          message: `Invalid music goal IDs: ${invalidGoalIds.join(', ')}. Available goals: ${availableGoalsList}`,
-          error: 'Music goal validation failed'
-        };
+        throw new Error(`Invalid music goal IDs: ${invalidGoalIds.join(', ')}`);
+      }
+    }
+
+    if (moodIds && moodIds.length > 0) {
+      const existingMoods = await this.prisma.musicMood.findMany({
+        where: {
+          id: { in: moodIds },
+          status: 'ACTIVE'
+        }
+      });
+      
+      const existingMoodIds = existingMoods.map(mood => mood.id);
+      const invalidMoodIds = moodIds.filter(id => !existingMoodIds.includes(id));
+      
+      if (invalidMoodIds.length > 0) {
+        throw new Error(`Invalid music mood IDs: ${invalidMoodIds.join(', ')}`);
       }
     }
 
     // Only include schoolId if it's a valid UUID (not placeholder)
     const createData: any = {
       ...resourceData,
+      description: description || subtitle, // Map subtitle to description in DB if description is missing
       categories: categoryIds ? {
         create: categoryIds.map(categoryId => ({
           categoryId,
@@ -88,6 +81,11 @@ export class MusicRepository {
       goals: goalIds ? {
         create: goalIds.map(goalId => ({
           goalId,
+        })),
+      } : undefined,
+      moods: moodIds ? {
+        create: moodIds.map(moodId => ({
+          moodId,
         })),
       } : undefined,
     };
@@ -110,6 +108,11 @@ export class MusicRepository {
             goal: true,
           },
         },
+        moods: {
+          include: {
+            mood: true,
+          },
+        },
         school: true,
       },
     });
@@ -130,9 +133,15 @@ export class MusicRepository {
     
     const where: any = {
       ...(status && { status }),
-      // Only add schoolId filter if it's provided and not a placeholder
-      ...(schoolId && schoolId !== "school_id" && { schoolId }),
     };
+
+    // If schoolId is provided, show resources for that school OR global resources
+    if (schoolId && schoolId !== "school_id") {
+      where.OR = [
+        { schoolId: schoolId },
+        { schoolId: null },
+      ];
+    }
 
     if (category) {
       where.categories = {
@@ -215,8 +224,8 @@ export class MusicRepository {
     });
   }
 
-  async updateMusicResource(id: string, data: UpdateMusicResourceInput & { schoolId?: string }) {
-    const { categoryIds, goalIds, schoolId, ...updateData } = data;
+  async updateMusicResource(id: string, data: UpdateMusicResourceInput & { schoolId?: string; createdBy?: string }) {
+    const { categoryIds, goalIds, moodIds, schoolId, subtitle, description, createdBy, ...updateData } = data;
 
     // Handle category updates
     if (categoryIds !== undefined) {
@@ -232,9 +241,17 @@ export class MusicRepository {
       });
     }
 
+    // Handle mood updates
+    if (moodIds !== undefined) {
+      await this.prisma.musicResourceMood.deleteMany({
+        where: { musicResourceId: id },
+      });
+    }
+
     // Only include schoolId in update if it's provided and not null
     const updatePayload: any = {
       ...updateData,
+      description: description || subtitle, // Map subtitle to description in DB if description is missing
       categories: categoryIds ? {
         create: categoryIds.map(categoryId => ({
           categoryId,
@@ -243,6 +260,11 @@ export class MusicRepository {
       goals: goalIds ? {
         create: goalIds.map(goalId => ({
           goalId,
+        })),
+      } : undefined,
+      moods: moodIds ? {
+        create: moodIds.map(moodId => ({
+          moodId,
         })),
       } : undefined,
     };
@@ -264,6 +286,11 @@ export class MusicRepository {
         goals: {
           include: {
             goal: true,
+          },
+        },
+        moods: {
+          include: {
+            mood: true,
           },
         },
         school: true,
