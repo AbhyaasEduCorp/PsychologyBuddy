@@ -6,6 +6,7 @@ import { z } from "zod";
 
 export const CreateMusicResourceSchema = z.object({
   title: z.string().min(1, "Title is required").max(200, "Title too long"),
+  subtitle: z.string().optional(),
   description: z.string().optional(),
   url: z.string().min(1, "Audio URL is required").refine((url) => {
     // Accept absolute URLs (http/https), relative URLs (starting with /), and data URLs
@@ -20,6 +21,12 @@ export const CreateMusicResourceSchema = z.object({
   status: z.enum(["DRAFT", "PUBLISHED"]).default("DRAFT"),
   categoryIds: z.array(z.string()).optional(),
   goalIds: z.array(z.string()).optional(),
+  moodIds: z.array(z.string()).optional(),
+  schoolId: z.string().optional().refine((val) => {
+    if (!val || val === '' || val === 'school_id') return true; // Allow empty or placeholder values
+    const uuidRegex = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/;
+    return uuidRegex.test(val);
+  }, { message: 'Invalid school ID format' }),
 });
 
 export const UpdateMusicResourceSchema = CreateMusicResourceSchema.partial();
@@ -28,6 +35,11 @@ export const GetMusicResourcesSchema = z.object({
   category: z.string().optional(),
   goal: z.string().optional(),
   status: z.enum(["DRAFT", "PUBLISHED"]).optional(),
+  schoolId: z.string().optional().refine((val) => {
+    if (!val || val === '' || val === 'school_id') return true; 
+    const uuidRegex = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/;
+    return uuidRegex.test(val);
+  }, { message: 'Invalid school ID format' }),
   page: z.coerce.number().int().positive().default(1),
   limit: z.coerce.number().int().positive().max(100).default(20),
 });
@@ -126,16 +138,19 @@ export const GetInstructionsByResourceSchema = z.object({
 export const StudentGetMusicResourcesSchema = z.object({
   category: z.string().optional(),
   goal: z.string().optional(),
+  schoolId: z.string().optional(),
   page: z.coerce.number().int().positive().default(1),
   limit: z.coerce.number().int().positive().max(50).default(20),
 });
 
 export const StudentGetFeaturedMusicSchema = z.object({
   limit: z.coerce.number().int().positive().max(20).default(10),
+  schoolId: z.string().optional(),
 });
 
 export const StudentGetMusicInstructionsSchema = z.object({
   difficulty: z.enum(["BEGINNER", "INTERMEDIATE", "ADVANCED"]).optional(),
+  schoolId: z.string().optional(),
   page: z.coerce.number().int().positive().default(1),
   limit: z.coerce.number().int().positive().max(50).default(20),
 });

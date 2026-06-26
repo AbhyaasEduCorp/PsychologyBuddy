@@ -152,7 +152,7 @@ export default function MusicTools({
         "x-user-id": user?.id || "admin@calmpath.ai",
         ...(user?.school?.id && { "x-school-id": user.school.id }),
       };
-      const response = await fetch('/api/labels/moods', { headers });
+      const response = await fetch('/api/admin/music/moods', { headers });
       const data: ApiResponse<any[]> = await response.json();
       if (data.success && data.data) {
         setMusicMoods(data.data);
@@ -178,7 +178,7 @@ export default function MusicTools({
         "x-user-id": user?.id || "admin@calmpath.ai",
         ...(user?.school?.id && { "x-school-id": user.school.id }),
       };
-      const response = await fetch('/api/labels/goals', { headers });
+      const response = await fetch('/api/admin/music/goals', { headers });
       const data: ApiResponse<any[]> = await response.json();
       if (data.success && data.data) {
         setMusicGoals(data.data);
@@ -388,6 +388,7 @@ export default function MusicTools({
       
       const payload: any = {
         title: musicForm.title,
+        subtitle: musicForm.subtitle,
         url: finalUrl,
         isPublic: musicForm.isPublic,
         status: musicForm.status,
@@ -404,6 +405,12 @@ export default function MusicTools({
       }
       if (musicForm.goal && musicGoalsMap[musicForm.goal]) {
         payload.goalIds = [musicGoalsMap[musicForm.goal]];
+      }
+
+      if (musicForm.supportedMoods && musicForm.supportedMoods.length > 0) {
+        payload.moodIds = musicForm.supportedMoods
+          .map(moodName => musicMoodsMap[moodName])
+          .filter(id => !!id);
       }
 
       // Only add schoolId if user has a school
@@ -578,6 +585,7 @@ export default function MusicTools({
       const payload: any = {
         id: selectedMusicResource.id,
         title: musicForm.title,
+        subtitle: musicForm.subtitle,
         url: finalUrl,
         isPublic: musicForm.isPublic,
         status: musicForm.status,
@@ -594,6 +602,12 @@ export default function MusicTools({
       }
       if (musicForm.goal && musicGoalsMap[musicForm.goal]) {
         payload.goalIds = [musicGoalsMap[musicForm.goal]];
+      }
+
+      if (musicForm.supportedMoods && musicForm.supportedMoods.length > 0) {
+        payload.moodIds = musicForm.supportedMoods
+          .map(moodName => musicMoodsMap[moodName])
+          .filter(id => !!id);
       }
 
       // Only add schoolId if user has a school
@@ -1127,20 +1141,20 @@ export default function MusicTools({
             </CardHeader>
             <CardContent>
               <div className="flex items-start gap-3">
-                {/* <div className="w-16 h-16 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0"> */}
-                  {/* {resource.thumbnailUrl ? (
+                <div className="w-16 h-16 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
+                  {resource.thumbnailUrl ? (
                     <img src={resource.thumbnailUrl} alt={resource.title} className="w-full h-full object-cover" />
+                  ) : resource.thumbnail ? (
+                    <img src={resource.thumbnail} alt={resource.title} className="w-full h-full object-cover" />
                   ) : resource.coverImage ? (
                     <img src={resource.coverImage} alt={resource.title} className="w-full h-full object-cover" />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center">
                       <Music className="h-6 w-6 text-[#3B82F6]" />
                     </div>
-                  )} */}
-                {/* </div> */}
+                  )}
+                </div>
                 <div className="flex-1 min-w-0">
-                  {/* <h4 className="font-semibold text-foreground mb-1 truncate">{resource.title}</h4>
-                  <p className="text-sm text-muted-foreground mb-2 truncate">{resource.subtitle || "Music resource"}</p> */}
                   <div className="flex items-center gap-2 mb-3">
                     {resource.categories?.map((cat) => (
                       <Badge key={cat.category.name} variant="outline" className="text-xs">{cat.category.name}</Badge>
