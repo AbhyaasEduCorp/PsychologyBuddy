@@ -32,7 +32,7 @@ export class MusicAdminService {
   //        MUSIC RESOURCE MANAGEMENT
   // ====================================
 
-  async createMusicResource(data: CreateMusicResourceInput & { schoolId?: string }) {
+  async createMusicResource(data: CreateMusicResourceInput & { schoolId?: string; createdBy?: string }) {
     try {
       const titleSlug = data.title.toLowerCase().replace(/[^a-z0-9]/g, "_");
       if (data.url && data.url.startsWith("data:")) {
@@ -112,7 +112,7 @@ export class MusicAdminService {
     }
   }
 
-  async updateMusicResource(data: UpdateMusicResourceInput & { id: string; schoolId?: string }) {
+  async updateMusicResource(data: UpdateMusicResourceInput & { id: string; schoolId?: string; createdBy?: string }) {
     try {
       const existingResource = await this.musicRepository.getMusicResourceById(data.id);
       

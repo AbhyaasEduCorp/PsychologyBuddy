@@ -19,6 +19,7 @@ import {
   GetSingleMusicInstructionSchema,
   GetInstructionsByResourceSchema,
 } from "../validators/music.validators";
+import { asyncHandler } from "../../utils/error-handler";
 
 const musicAdminService = new MusicAdminService();
 
@@ -26,84 +27,61 @@ const musicAdminService = new MusicAdminService();
 //        MUSIC RESOURCE CONTROLLERS
 // ====================================
 
-export async function createMusicResource(request: NextRequest) {
-  try {
-    const body = await request.json();
-    console.log('Received body:', JSON.stringify(body, null, 2)); // Debug log
-    
-    const validatedData = CreateMusicResourceSchema.parse(body);
-    console.log('Validated data:', JSON.stringify(validatedData, null, 2)); // Debug log
+export const createMusicResource = asyncHandler(async (request: NextRequest) => {
+  const body = await request.json();
+  console.log('Received body:', JSON.stringify(body, null, 2)); // Debug log
+  
+  const validatedData = CreateMusicResourceSchema.parse(body);
+  console.log('Validated data:', JSON.stringify(validatedData, null, 2)); // Debug log
 
-    // Add user context (this would come from authentication middleware)
-    const contextData = {
-      ...validatedData,
-      schoolId: "school_id", // This should come from user context
-    };
+  // Get user context from JWT/session
+  const userId = request.headers.get('x-user-id') || 'admin@calmpath.ai';
+  const schoolIdFromHeader = request.headers.get('x-school-id');
+  
+  // Use schoolId from body if provided, otherwise from header
+  const schoolId = validatedData.schoolId || (schoolIdFromHeader && schoolIdFromHeader !== 'undefined' ? schoolIdFromHeader : undefined);
 
-    const result = await musicAdminService.createMusicResource(contextData);
+  // Add user context
+  const contextData = {
+    ...validatedData,
+    schoolId,
+    createdBy: userId,
+  };
 
-    if (result.success) {
-      return NextResponse.json(result, { status: 201 });
-    } else {
-      return NextResponse.json(result, { status: 400 });
-    }
-  } catch (error) {
-    console.error("Controller error:", error);
-    
-    // Handle Zod validation errors specifically
-    if (error instanceof Error && error.name === 'ZodError') {
-      return NextResponse.json(
-        {
-          success: false,
-          message: "Validation failed",
-          error: error.message,
-        },
-        { status: 400 }
-      );
-    }
-    
-    return NextResponse.json(
-      {
-        success: false,
-        message: "Invalid request data",
-        error: error instanceof Error ? error.message : "Unknown error",
-      },
-      { status: 400 }
-    );
+  const result = await musicAdminService.createMusicResource(contextData);
+
+  if (result.success) {
+    return NextResponse.json(result, { status: 201 });
+  } else {
+    return NextResponse.json(result, { status: 400 });
   }
-}
+});
 
-export async function getMusicResources(request: NextRequest) {
-  try {
-    const { searchParams } = new URL(request.url);
-    const queryData = Object.fromEntries(searchParams.entries());
-    const validatedData = GetMusicResourcesSchema.parse(queryData);
+export const getMusicResources = asyncHandler(async (request: NextRequest) => {
+  const { searchParams } = new URL(request.url);
+  const queryData = Object.fromEntries(searchParams.entries());
+  const validatedData = GetMusicResourcesSchema.parse(queryData);
 
-    // Add user context
-    const contextData = {
-      ...validatedData,
-      schoolId: "school_id", // This should come from user context
-    };
+  // Get user context from JWT/session
+  const schoolIdFromHeader = request.headers.get('x-school-id');
+  
+  // Use schoolId from query if provided, otherwise from header
+  const schoolId = validatedData.schoolId || (schoolIdFromHeader && schoolIdFromHeader !== 'undefined' ? schoolIdFromHeader : undefined);
 
-    const result = await musicAdminService.getMusicResources(contextData);
+  // Add user context
+  const contextData = {
+    ...validatedData,
+    schoolId,
+  };
 
-    if (result.success) {
-      return NextResponse.json(result);
-    } else {
-      return NextResponse.json(result, { status: 400 });
-    }
-  } catch (error) {
-    console.error("Controller error:", error);
-    return NextResponse.json(
-      {
-        success: false,
-        message: "Invalid request parameters",
-        error: error instanceof Error ? error.message : "Unknown error",
-      },
-      { status: 400 }
-    );
+  const result = await musicAdminService.getMusicResources(contextData);
+
+  if (result.success) {
+    return NextResponse.json(result);
+  } else {
+    return NextResponse.json(result, { status: 400 });
   }
-}
+});
 
 export async function getMusicResourceById(request: NextRequest) {
   try {
@@ -131,50 +109,42 @@ export async function getMusicResourceById(request: NextRequest) {
   }
 }
 
-export async function updateMusicResource(request: NextRequest) {
-  try {
-    const { searchParams } = new URL(request.url);
-    const queryData = Object.fromEntries(searchParams.entries());
-    const updateData = await request.json();
-    
-    // Get id from URL params, not request body
-    const { id } = queryData;
-    
-    if (!id) {
-      return NextResponse.json(
-        { success: false, message: "ID is required" },
-        { status: 400 }
-      );
-    }
-    
-    const validatedData = UpdateMusicResourceSchema.parse(updateData);
-
-    // Add user context - use id from URL params
-    const contextData = {
-      id,
-      ...validatedData,
-      schoolId: "school_id", // This should come from user context
-    };
-
-    const result = await musicAdminService.updateMusicResource(contextData);
-
-    if (result.success) {
-      return NextResponse.json(result);
-    } else {
-      return NextResponse.json(result, { status: 404 });
-    }
-  } catch (error) {
-    console.error("Controller error:", error);
+export const updateMusicResource = asyncHandler(async (request: NextRequest) => {
+  const { searchParams } = new URL(request.url);
+  const queryData = Object.fromEntries(searchParams.entries());
+  const updateData = await request.json();
+  
+  // Get id from URL params, not request body
+  const { id } = queryData;
+  
+  if (!id) {
     return NextResponse.json(
-      {
-        success: false,
-        message: "Invalid request data",
-        error: error instanceof Error ? error.message : "Unknown error",
-      },
+      { success: false, message: "ID is required" },
       { status: 400 }
     );
   }
-}
+  
+  const validatedData = UpdateMusicResourceSchema.parse(updateData);
+
+  // Get user context from JWT/session
+  const schoolIdFromHeader = request.headers.get('x-school-id');
+  const schoolId = validatedData.schoolId || (schoolIdFromHeader && schoolIdFromHeader !== 'undefined' ? schoolIdFromHeader : undefined);
+
+  // Add user context - use id from URL params
+  const contextData = {
+    id,
+    ...validatedData,
+    schoolId,
+  };
+
+  const result = await musicAdminService.updateMusicResource(contextData);
+
+  if (result.success) {
+    return NextResponse.json(result);
+  } else {
+    return NextResponse.json(result, { status: 404 });
+  }
+});
 
 export async function deleteMusicResource(request: NextRequest) {
   try {
