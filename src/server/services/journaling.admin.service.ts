@@ -196,10 +196,10 @@ export class JournalingAdminService {
       // Handle global vs specific school prompts
       if ((admin.role.name === 'SUPER_ADMIN' || admin.role.name === 'SUPERADMIN') && data.schoolId === 'all') {
         // Global prompt - create without school association
-        prompt = await JournalingAdminRepository.createGlobalPrompt(data.text, data.moodIds || []);
+        prompt = await JournalingAdminRepository.createGlobalPrompt(data.text, data.moodIds || [], data.type || 'WRITING');
       } else {
         // Regular prompt - create with school association
-        prompt = await JournalingAdminRepository.createPrompt(data.text, data.moodIds || []);
+        prompt = await JournalingAdminRepository.createPrompt(data.text, data.moodIds || [], data.type || 'WRITING');
       }
 
       return {

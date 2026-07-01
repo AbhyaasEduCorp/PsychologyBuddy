@@ -40,20 +40,22 @@ export class JournalingAdminRepository {
   }
 
   // Journaling Prompts Management
-  static async createPrompt(text: string, moodIds: string[]) {
+  static async createPrompt(text: string, moodIds: string[], type: string = 'WRITING') {
     return await prisma.journalingPrompt.create({
       data: {
         text,
         moodIds,
+        type,
       },
     });
   }
 
-  static async createGlobalPrompt(text: string, moodIds: string[]) {
+  static async createGlobalPrompt(text: string, moodIds: string[], type: string = 'WRITING') {
     return await prisma.journalingPrompt.create({
       data: {
         text,
         moodIds,
+        type,
         // No schoolId for global prompts
       },
     });
@@ -71,13 +73,14 @@ export class JournalingAdminRepository {
     });
   }
 
-  static async updatePrompt(id: string, data: { text?: string; moodIds?: string[]; isEnabled?: boolean }) {
+  static async updatePrompt(id: string, data: { text?: string; moodIds?: string[]; isEnabled?: boolean; type?: string }) {
     return await prisma.journalingPrompt.update({
       where: { id },
       data: {
         ...(data.text !== undefined && { text: data.text }),
         ...(data.moodIds !== undefined && { moodIds: data.moodIds }),
-        ...(data.isEnabled !== undefined && { isEnabled: data.isEnabled })
+        ...(data.isEnabled !== undefined && { isEnabled: data.isEnabled }),
+        ...(data.type !== undefined && { type: data.type })
       },
     });
   }

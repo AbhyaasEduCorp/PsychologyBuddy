@@ -12,7 +12,8 @@ import AudioRecorder from '@/src/components/StudentDashboard/SelfHelpTools/Journ
 import AudioJournalList from '@/src/components/StudentDashboard/SelfHelpTools/Journaling/Audio/AudioJournalList';
 // import ArtCanvas from '@/src/components/StudentDashboard/SelfHelpTools/Journaling/Art/ArtCanvas';
 // import ArtJournalList from '@/src/components/StudentDashboard/SelfHelpTools/Journaling/Art/ArtJournalList';
-import { Book, BookOpen, ChevronLeft, Sparkles } from 'lucide-react';
+import { Book, BookOpen, ChevronLeft, Sparkles, Palette } from 'lucide-react';
+import { RingSpinner } from '@/components/ui/Spinners';
 import { toast } from 'sonner';
 import JournalTabs from '@/src/components/StudentDashboard/SelfHelpTools/Journaling/JournalTabs';
 import DrawingCanvas from '@/src/components/StudentDashboard/SelfHelpTools/Journaling/Art/DrawingCanvas';
@@ -43,7 +44,15 @@ interface ArtJournal {
 
 export default function JournalingPage() {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<'writing' | 'audio' | 'art'>('writing');
+  const [activeTab, setActiveTab] = useState<'writing' | 'audio' | 'art'>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('student-journaling-active-tab');
+      if (saved === 'writing' || saved === 'audio' || saved === 'art') {
+        return saved;
+      }
+    }
+    return 'writing';
+  });
   const [writingJournals, setWritingJournals] = useState<WritingJournal[]>([]);
   const [audioJournals, setAudioJournals] = useState<AudioJournal[]>([]);
   const [artJournals, setArtJournals] = useState<ArtJournal[]>([]);
@@ -52,6 +61,9 @@ export default function JournalingPage() {
   const [content, setContent] = useState('');
   const [selectedMood, setSelectedMood] = useState<string | null>(null);
   const [artMood, setArtMood] = useState<string | null>(null);
+  const [artPrompts, setArtPrompts] = useState<Array<{ id: string; text: string; type: string; isEnabled: boolean }>>([]);
+  const [currentPromptIndex, setCurrentPromptIndex] = useState(-1);
+  const [currentArtPrompt, setCurrentArtPrompt] = useState<string | null>(null);
   
   // Admin configuration state
   const [journalingConfig, setJournalingConfig] = useState<{
@@ -62,17 +74,9 @@ export default function JournalingPage() {
     enableUndo?: boolean;
     enableRedo?: boolean;
     enableClearCanvas?: boolean;
+    enableColorPalette?: boolean;
   } | null>(null);
   const [configLoading, setConfigLoading] = useState(true);
-
-  // Load color palette setting from localStorage
-  const loadColorPaletteFromStorage = () => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('artColorPaletteEnabled');
-      return saved !== null ? JSON.parse(saved) : true; // Default to true
-    }
-    return true;
-  };
 
   // Fetch journaling configuration for student's school
   const fetchJournalingConfig = async () => {
@@ -94,12 +98,23 @@ export default function JournalingPage() {
           enableUndo: data.data.enableUndo,
           enableRedo: data.data.enableRedo,
           enableClearCanvas: data.data.enableClearCanvas,
-          enableColorPalette: loadColorPaletteFromStorage(), // Load from localStorage
+          enableColorPalette: data.data.enableColorPalette !== false,
         };
         
         setJournalingConfig(config);
         
-        // Set default tab to first enabled type
+        // Set default tab to first enabled type only if no saved tab
+        const savedTab = typeof window !== 'undefined' ? localStorage.getItem('student-journaling-active-tab') : null;
+        if (savedTab === 'writing' || savedTab === 'audio' || savedTab === 'art') {
+          // Keep saved tab if it's enabled
+          if (
+            (savedTab === 'writing' && config.writingEnabled) ||
+            (savedTab === 'audio' && config.audioEnabled) ||
+            (savedTab === 'art' && config.artEnabled)
+          ) {
+            return;
+          }
+        }
         if (data.data.enableWriting) {
           setActiveTab('writing');
         } else if (data.data.enableAudio) {
@@ -121,6 +136,38 @@ export default function JournalingPage() {
   useEffect(() => {
     fetchJournalingConfig();
   }, []);
+
+  // Save active tab to localStorage when it changes
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('student-journaling-active-tab', activeTab);
+    }
+  }, [activeTab]);
+
+  // Fetch art prompts on mount
+  useEffect(() => {
+    const fetchArtPrompts = async () => {
+      try {
+        const response = await fetch('/api/admin/journaling/prompts');
+        const data = await response.json();
+        if (data.success && data.data) {
+          const artOnly = data.data.filter((p: any) => p.type === 'ART' && p.isEnabled);
+          setArtPrompts(artOnly);
+        }
+      } catch (error) {
+        console.error('Failed to fetch art prompts:', error);
+      }
+    };
+    fetchArtPrompts();
+  }, []);
+
+  // Cycle to the next art prompt
+  const handleNewArtPrompt = () => {
+    if (artPrompts.length === 0) return;
+    const nextIndex = (currentPromptIndex + 1) % artPrompts.length;
+    setCurrentPromptIndex(nextIndex);
+    setCurrentArtPrompt(artPrompts[nextIndex].text);
+  };
 
   // Fetch journals on component mount and tab change
   useEffect(() => {
@@ -390,12 +437,12 @@ export default function JournalingPage() {
       <div className="min-h-screen bg-[#F3F6F8] p-4 md:p-8">
       <div className="max-w-7xl mx-auto">
         {configLoading ? (
-          <div className="flex items-center justify-center py-20">
-            <div className="text-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          
+            <div className="flex flex-col items-center justify-center py-12">
+              <RingSpinner size="lg" color="blue"  />
               <p className="text-gray-600">Loading journaling configuration...</p>
             </div>
-          </div>
+          
         ) : journalingConfig && !journalingConfig.writingEnabled && !journalingConfig.audioEnabled && !journalingConfig.artEnabled ? (
           <div className="flex items-center justify-center py-20">
             <div className="text-center">
@@ -456,8 +503,13 @@ export default function JournalingPage() {
                     <MoodSelector selectedMood={artMood} onMoodSelect={setArtMood} />
                     <div className="bg-[#FFF5EC] sm:h-[79px] border border-[#FF7A1E] rounded-[20px] sm:rounded-[32px] sm:p-6 p-3 -mt-3 mb-8 flex items-center justify-between shadow-sm relative overflow-hidden group">
                       <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-orange-200/20 to-transparent rounded-full -mr-16 -mt-16 pointer-events-none"></div>
-                      <h3 className="text-[#BF570F] font-base sm:pl-5 text-[13px] sm:text-[20px] z-10">Create Waves that Carry your feelings away ?</h3>
-                      <button className="bg-[#FCEEDD] hover:bg-[#FFCC80] text-[#E65100] px-3 py-1 sm:px-6 sm:py-2 rounded-[12px] font-semibold text-sm flex items-center gap-2 transition-all shadow-sm z-10">
+                      <h3 className="text-[#BF570F] font-base sm:pl-5 text-[13px] sm:text-[20px] z-10">
+                        {currentArtPrompt || 'Create Waves that Carry your feelings away ?'}
+                      </h3>
+                      <button
+                        onClick={handleNewArtPrompt}
+                        className="bg-[#FCEEDD] hover:bg-[#FFCC80] text-[#E65100] px-3 py-1 sm:px-6 sm:py-2 rounded-[12px] font-semibold text-sm flex items-center gap-2 transition-all shadow-sm z-10"
+                      >
                         <Sparkles className="w-4 h-4" />
                         New
                       </button>
@@ -473,7 +525,13 @@ export default function JournalingPage() {
                         </Link>
                       </div>
                     )} */}
-                    <DrawingCanvas onSave={saveArtJournal} loading={loading} config={journalingConfig || undefined} />
+                    <DrawingCanvas
+                      onSave={saveArtJournal}
+                      loading={loading}
+                      config={journalingConfig || undefined}
+                      prompt={currentArtPrompt || undefined}
+                      onNewPrompt={handleNewArtPrompt}
+                    />
                     <div className="flex justify-center mt-10">
                       <button 
                         onClick={() => {

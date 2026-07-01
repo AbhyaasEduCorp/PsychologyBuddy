@@ -73,9 +73,9 @@ export class LinkBlockService {
       const block = await prisma.linkBlock.update({
         where: { id: blockId },
         data: {
-          ...(data.title && { title: data.title }),
-          ...(data.url && { url: data.url }),
-          ...(data.description && { description: data.description }),
+          ...(data.title !== undefined && { title: data.title }),
+          ...(data.url !== undefined && { url: data.url }),
+          ...(data.description !== undefined && { description: data.description }),
           ...(data.order !== undefined && { order: data.order }),
         },
       });

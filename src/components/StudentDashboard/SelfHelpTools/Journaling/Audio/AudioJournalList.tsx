@@ -2,6 +2,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { Play, Pause } from 'lucide-react';
+import { RingSpinner } from '@/components/ui/Spinners';
 
 interface AudioJournal {
   id: string;
@@ -91,7 +92,7 @@ export default function AudioJournalList({ journals, onDelete, loading }: AudioJ
   if (loading) {
     return (
       <div className="text-center py-6 sm:py-8">
-        <div className="animate-spin rounded-full h-6 w-6 sm:h-8 sm:w-8 border-b-2 border-cyan-500 mx-auto"></div>
+        <RingSpinner size="sm" color="cyan" className="mx-auto" />
         <p className="text-slate-500 mt-2 text-sm sm:text-base">Loading audio journals...</p>
       </div>
     );

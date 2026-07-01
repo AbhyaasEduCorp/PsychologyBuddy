@@ -7,6 +7,7 @@ import { Progress } from "@/components/ui/progress";
 import { Trophy, Calendar, Users, CheckCircle2, Clock, TrendingUp, Star, Target, Flame, Award } from "lucide-react";
 import { toast } from "@/components/ui/use-toast";
 import { ModuleType, ChallengeType, UserChallengeStatus } from "@/src/services/challenges/types/challenge.types";
+import { RingSpinner } from '@/components/ui/Spinners';
 
 interface Challenge {
   id: string;
@@ -327,7 +328,7 @@ export default function ChallengesPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        <RingSpinner size="md" color="blue" />
       </div>
     );
   }

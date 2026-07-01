@@ -22,11 +22,11 @@ export default function JournalHeader({ activeTab = 'writing', onTabChange, view
   
 
   return (
-    <div className="space-y-4 sm:space-y-6 lg:space-y-8">
+    <div className="space-y-4 sm:space-y-6 lg:space-y-3">
       {/* Breadcrumb */}
       <button
             onClick={handleBack}
-            className={`flex items-center gap-2 text-[#73829A] hover:text-[#1a9bcc] transition-colors p-2`}
+            className={`flex items-center gap-2 text-[#73829A] hover:text-[#1a9bcc] transition-colors p-2 mt-2`}
           >
             <ArrowLeft className="w-4 h-5" />
             <span className="text-[13px] sm:text-[16px]">Back to SelfHelpTools</span>
@@ -36,7 +36,7 @@ export default function JournalHeader({ activeTab = 'writing', onTabChange, view
       
       
               {/* Page Title Section */}
-              <div className="flex items-start justify-between gap-3 sm:gap-4 mb-6 mt-5 sm:mb-10">
+              <div className="flex items-start justify-between gap-3 sm:gap-4 mb-6 mt-4 sm:mb-10">
                 <div className="flex items-start gap-3 sm:gap-4">
                   <div className="w-12 h-12 sm:w-16 sm:h-16 bg-[#E3F2FD] rounded-2xl flex items-center justify-center text-blue-500 shadow-sm">
               <img src="/selfhelptools/journaling/Header.svg" alt="Editor" className="w-[45px] h-[45px] sm:w-[63px] sm:h-[63px]" />

@@ -52,9 +52,9 @@ export default function SelfHelpCardsExact() {
 
   return (
     <div className="min-h-screen bg-[#F6F8FB]">
-      <main className="max-w-7xl mx-auto px-4 sm:px-5 md:px-6 lg:px-8 py-6 sm:py-8 md:py-10">
+      <main className="max-w-7xl mx-auto px-4 sm:px-5 md:px-6 lg:px-8 py-6 sm:py-8 md:py-6">
         {/* Back Button */}
-        <div className="max-w-7xl mb-3 sm:mb-4 mt-3 sm:mt-5">
+        <div className="max-w-7xl mb-3 sm:mb-4 mt-3">
           <BackToDashboard />
         </div>
 

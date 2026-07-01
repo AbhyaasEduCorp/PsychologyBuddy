@@ -30,6 +30,7 @@ import { useState, useEffect } from "react";
 import BackToDashboard from "../Layout/BackToDashboard";
 import { toast } from "@/components/ui/use-toast";
 import { Input } from "@/components/ui/input";
+import { RingSpinner } from '@/components/ui/Spinners';
 
 /* ----------------------------------------------------------------------
    API FETCHER
@@ -103,7 +104,7 @@ export default function StudentProfilePage() {
       <StudentLayout>
         <div className="flex justify-center items-center min-h-[300px] sm:min-h-[400px]">
           <div className="text-center">
-            <div className="animate-spin rounded-full h-8 w-8 sm:h-12 sm:w-12 border-b-2 border-blue-500 mx-auto mb-3 sm:mb-4"></div>
+            <RingSpinner size="lg" color="blue" className="mx-auto mb-3 sm:mb-4" />
             <p className="text-gray-600 text-sm sm:text-base">Loading your profile...</p>
           </div>
         </div>
@@ -940,7 +941,7 @@ function SessionCard({ session, setSelectedSession, setIsModalOpen }: any) {
           <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
             {isLoading ? (
               <div className="text-center py-6 sm:py-8">
-                <div className="animate-spin rounded-full h-6 w-6 sm:h-8 sm:w-8 border-b-2 border-blue-500 mx-auto mb-3 sm:mb-4"></div>
+                <RingSpinner size="sm" color="blue" className="mx-auto mb-3 sm:mb-4" />
                 <p className="text-gray-600 text-sm sm:text-base">Loading session details...</p>
               </div>
             ) : (

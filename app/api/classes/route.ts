@@ -50,3 +50,48 @@ export const GET = withPermission({
     );
   }
 });
+
+export const POST = withPermission({
+  module: 'USER_MANAGEMENT',
+  action: 'CREATE',
+})(async (req: NextRequest, { user }: any) => {
+  try {
+    const body = await req.json();
+    const { name, grade, section, schoolId } = body;
+
+    if (!name || grade === undefined || !schoolId) {
+      return NextResponse.json(
+        { success: false, message: 'name, grade, and schoolId are required' },
+        { status: 400 }
+      );
+    }
+
+    const existing = await prisma.class.findFirst({
+      where: { name, grade: parseInt(grade), section: section ?? null, schoolId },
+    });
+
+    if (existing) {
+      return NextResponse.json({
+        success: true,
+        message: 'Class already exists',
+        data: existing,
+      });
+    }
+
+    const created = await prisma.class.create({
+      data: { name, grade: parseInt(grade), section: section ?? null, schoolId },
+    });
+
+    return NextResponse.json({
+      success: true,
+      message: 'Class created',
+      data: created,
+    });
+  } catch (error: any) {
+    console.error('Error creating class:', error);
+    return NextResponse.json(
+      { success: false, message: 'Failed to create class', details: error.message },
+      { status: 500 }
+    );
+  }
+});

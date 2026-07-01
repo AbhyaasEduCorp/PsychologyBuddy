@@ -59,7 +59,8 @@ export class CategoryController {
     action: 'VIEW' 
   })(async (req: NextRequest, { params }: any) => {
     try {
-      const result = await CategoryService.getCategoryById(params.id);
+      const { id } = await params;
+      const result = await CategoryService.getCategoryById(id);
       return NextResponse.json(result);
     } catch (error) {
       console.error('Get category error:', error);
@@ -76,8 +77,9 @@ export class CategoryController {
     try {
       const body = await req.json();
       const validatedData = UpdateCategorySchema.parse(body);
+      const { id } = await params;
       
-      const result = await CategoryService.updateCategory(params.id, validatedData);
+      const result = await CategoryService.updateCategory(id, validatedData);
       return NextResponse.json(result);
     } catch (error) {
       console.error('Update category error:', error);
@@ -94,8 +96,9 @@ export class CategoryController {
     try {
       const body = await req.json();
       const validatedData = UpdateCategoryStatusSchema.parse(body);
+      const { id } = await params;
       
-      const result = await CategoryService.updateCategoryStatus(params.id, validatedData.status);
+      const result = await CategoryService.updateCategoryStatus(id, validatedData.status);
       return NextResponse.json(result);
     } catch (error) {
       console.error('Update category status error:', error);
@@ -110,7 +113,8 @@ export class CategoryController {
     action: 'DELETE' 
   })(async (req: NextRequest, { params }: any) => {
     try {
-      const result = await CategoryService.deleteCategory(params.id);
+      const { id } = await params;
+      const result = await CategoryService.deleteCategory(id);
       return NextResponse.json(result);
     } catch (error) {
       console.error('Delete category error:', error);

@@ -93,14 +93,15 @@ export class JournalingAdminController {
   }
 
   // PATCH /api/admin/journaling/prompts/:id
-  async updatePrompt(req: NextRequest, { params }: { params: { id: string } }) {
+  async updatePrompt(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
     try {
       const session = await requirePermission(req, 'selfhelp.journaling.update');
 
       const body = await req.json();
       const parsed = UpdateJournalingPromptSchema.parse(body);
+      const { id } = await params;
 
-      const result = await JournalingAdminService.updatePrompt(session.userId, params.id, parsed);
+      const result = await JournalingAdminService.updatePrompt(session.userId, id, parsed);
 
       return NextResponse.json(result);
     } catch (err) {
@@ -127,11 +128,12 @@ export class JournalingAdminController {
   }
 
   // DELETE /api/admin/journaling/prompts/:id
-  async deletePrompt(req: NextRequest, { params }: { params: { id: string } }) {
+  async deletePrompt(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
     try {
       const session = await requirePermission(req, 'selfhelp.journaling.update');
 
-      const data = { id: params.id };
+      const { id } = await params;
+      const data = { id };
       const parsed = DeleteJournalingPromptSchema.parse(data);
 
       const result = await JournalingAdminService.deletePrompt(session.userId, parsed);

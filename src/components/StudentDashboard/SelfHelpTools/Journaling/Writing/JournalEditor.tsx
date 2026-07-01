@@ -26,8 +26,7 @@ export default function JournalEditor({
   loading = false 
 }: JournalEditorProps) {
   const { toast } = useToast();
-  console.log('JournalEditor - prompt:', prompt);
-  
+
   const handleSave = () => {
     if (!content.trim()) {
       toast({
@@ -36,10 +35,10 @@ export default function JournalEditor({
       });
       return;
     }
-    
+
     // Call the original save function
     onSave();
-    
+
     // Show success toast (assuming save was successful)
     toast({
       title: "Journal entry saved successfully!",

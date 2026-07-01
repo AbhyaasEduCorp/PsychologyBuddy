@@ -9,6 +9,7 @@ import StudentLayout from '@/src/components/StudentDashboard/Layout/StudentLayou
 export default function LibraryPage() {
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [showSaves, setShowSaves] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   
   const handleShowSaves = () => {
     setShowSaves(!showSaves);
@@ -22,6 +23,8 @@ export default function LibraryPage() {
         <LibraryHeader 
           onShowSaves={handleShowSaves} 
           isShowingSaves={showSaves}
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
         />
         
         {/* Category Tabs - Only show when not viewing saves */}
@@ -38,6 +41,7 @@ export default function LibraryPage() {
         <CourseGrid 
           selectedCategory={selectedCategory}
           showSaves={showSaves}
+          searchQuery={searchQuery}
         />
       </div>
           

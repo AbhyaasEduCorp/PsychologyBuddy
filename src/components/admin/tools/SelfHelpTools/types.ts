@@ -9,6 +9,7 @@ export interface ListeningInstructions {
 export interface JournalPrompt {
   id: string;
   text: string;
+  type: "WRITING" | "ART";
   moodIds: string[];
   isEnabled: boolean;
   createdAt: string;
@@ -142,12 +143,12 @@ export const defaultMeditationInstructions: ListeningInstructions = {
 };
 
 export const journalPrompts: JournalPrompt[] = [
-  { id: "1", text: "What are you grateful for today?", moodIds: [], isEnabled: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-  { id: "2", text: "Describe a challenge you overcame recently", moodIds: [], isEnabled: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-  { id: "3", text: "What made you smile today?", moodIds: [], isEnabled: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-  { id: "4", text: "Write about something you're looking forward to", moodIds: [], isEnabled: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-  { id: "5", text: "Draw how you're feeling right now", moodIds: [], isEnabled: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-  { id: "6", text: "Create an image of your happy place", moodIds: [], isEnabled: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+  { id: "1", text: "What are you grateful for today?", type: "WRITING", moodIds: [], isEnabled: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+  { id: "2", text: "Describe a challenge you overcame recently", type: "WRITING", moodIds: [], isEnabled: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+  { id: "3", text: "What made you smile today?", type: "WRITING", moodIds: [], isEnabled: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+  { id: "4", text: "Write about something you're looking forward to", type: "WRITING", moodIds: [], isEnabled: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+  { id: "5", text: "Draw how you're feeling right now", type: "ART", moodIds: [], isEnabled: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+  { id: "6", text: "Create an image of your happy place", type: "ART", moodIds: [], isEnabled: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
 ];
 
 export const defaultJournalMoods: string[] = [];

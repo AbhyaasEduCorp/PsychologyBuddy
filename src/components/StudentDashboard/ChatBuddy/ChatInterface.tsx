@@ -265,7 +265,6 @@ const ChatInput = memo(React.forwardRef<HTMLInputElement, {
           onKeyDown={handleKeyDown}
           placeholder={placeholder}
           disabled={disabled}
-          autoFocus
           className="flex-1 px-3 py-2 sm:px-4 sm:py-3 md:px-6 md:py-4 border-[1px] border-[#d4d4d4] rounded-full bg-[#fbfbfb] text-gray-700 placeholder-gray-400 focus:outline-none focus:border-[#1B9EE0] focus:ring-1 focus:ring-[#1B9EE0] disabled:opacity-50 text-sm sm:text-[16px] md:text-[16px] min-w-0"
         />
         <Button
@@ -535,6 +534,12 @@ export default function ChatInterface({
   
   // Input ref for auto-focus after sending message
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Only auto-focus on small mobile screens (< 768px); skip on tablet and desktop
+  const shouldAutoFocus = useCallback(() => {
+    if (typeof window === 'undefined') return false;
+    return window.innerWidth < 768;
+  }, []);
   
   // Check if user is importing from reflections page
   const [isImportingFromReflections, setIsImportingFromReflections] = useState(false);
@@ -696,12 +701,14 @@ export default function ChatInterface({
       setShowSummaryImport(false);
       // Send the message directly instead of populating the input box
       sendMessage(reply);
-      // Focus the input field after sending
-      setTimeout(() => {
-        inputRef.current?.focus();
-      }, 100);
+      // Focus the input field after sending (only on mobile)
+      if (shouldAutoFocus()) {
+        setTimeout(() => {
+          inputRef.current?.focus();
+        }, 100);
+      }
     }
-  }, [sendMessage, user]);
+  }, [sendMessage, user, shouldAutoFocus]);
 
   const handleImportLastConversation = useCallback((topic?: string) => {
     console.log('Import clicked - lastSession:', lastSession)
@@ -748,12 +755,14 @@ export default function ChatInterface({
       setShowSummaryImport(false);
       sendMessage(hookInput);
       setInput("");
-      // Focus the input field after sending
-      setTimeout(() => {
-        inputRef.current?.focus();
-      }, 100);
+      // Focus the input field after sending (only on mobile)
+      if (shouldAutoFocus()) {
+        setTimeout(() => {
+          inputRef.current?.focus();
+        }, 100);
+      }
     }
-  }, [hookInput, sendMessage, user, setInput]);
+  }, [hookInput, sendMessage, user, setInput, shouldAutoFocus]);
 
   const handleSummariesClick = useCallback(() => {
     router.push('/students/reflections');
@@ -769,23 +778,26 @@ export default function ChatInterface({
   }, [hookIsLoading]);
 
   // Auto-focus input field after bot responds (when loading finishes)
+  // Only on small mobile screens to prevent unwanted keyboard popup on tablet/desktop
   React.useEffect(() => {
-    if (!hookIsLoading && inputRef.current) {
+    if (!hookIsLoading && inputRef.current && shouldAutoFocus()) {
       // Small delay to ensure DOM is updated
       const timer = setTimeout(() => {
         inputRef.current?.focus();
       }, 150);
       return () => clearTimeout(timer);
     }
-  }, [hookIsLoading]);
+  }, [hookIsLoading, shouldAutoFocus]);
 
   // Auto-focus input field on mount
+  // Only on small mobile screens to prevent unwanted keyboard popup on tablet/desktop
   React.useEffect(() => {
+    if (!shouldAutoFocus()) return;
     const timer = setTimeout(() => {
       inputRef.current?.focus();
     }, 500); // Longer delay for initial mount
     return () => clearTimeout(timer);
-  }, []);
+  }, [shouldAutoFocus]);
 
   // Debug logging only - use-chat.ts handles all chat initialization
   React.useEffect(() => {

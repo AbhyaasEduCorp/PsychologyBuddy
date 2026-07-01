@@ -3,12 +3,14 @@ import { AuthError } from '@/src/utils/errors';
 
 export interface CreateSectionBlockData {
   title: string;
+  subtitle?: string;
   content: string;
   order?: number;
 }
 
 export interface UpdateSectionBlockData {
   title?: string;
+  subtitle?: string;
   content?: string;
   order?: number;
 }
@@ -48,6 +50,7 @@ export class SectionBlockService {
         data: {
           articleId,
           title: data.title,
+          subtitle: data.subtitle || null,
           content: data.content,
           order,
         },
@@ -71,6 +74,7 @@ export class SectionBlockService {
         where: { id: blockId },
         data: {
           ...(data.title !== undefined && { title: data.title }),
+          ...(data.subtitle !== undefined && { subtitle: data.subtitle }),
           ...(data.content !== undefined && { content: data.content }),
           ...(data.order !== undefined && { order: data.order }),
         },

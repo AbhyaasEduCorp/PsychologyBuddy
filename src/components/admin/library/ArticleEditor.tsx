@@ -26,12 +26,13 @@ import { getAuthHeaders } from "@/src/utils/session.util";
 import { useAdminLoading } from "@/src/contexts/AdminLoadingContext";
 import { AdminLoader } from "@/src/components/admin/ui/AdminLoader";
 
-type BlockType = "section" | "bullet-list" | "image" | "key-takeaways" | "spacer" | "reflection" | "link";
+type BlockType = "section" | "bullet-list" | "image" | "key-takeaways" | "spacer" | "reflection" | "link" | "rich-content";
 
 interface SectionBlock {
   type: "section";
   id: string;
   title: string;
+  subtitle: string;
   content: string;
 }
 
@@ -75,7 +76,25 @@ interface LinkBlock {
   description: string;
 }
 
-type ContentBlock = SectionBlock | BulletListBlock | ImageBlock | KeyTakeawaysBlock | SpacerBlock | ReflectionBlock | LinkBlock;
+interface RichContentItem {
+  id: string;
+  type: 'heading' | 'subheading' | 'paragraph' | 'bullets' | 'image' | 'link';
+  text?: string;
+  bullets?: string[];
+  src?: string;
+  altText?: string;
+  url?: string;
+  title?: string;
+  description?: string;
+}
+
+interface RichContentBlock {
+  type: "rich-content";
+  id: string;
+  items: RichContentItem[];
+}
+
+type ContentBlock = SectionBlock | BulletListBlock | ImageBlock | KeyTakeawaysBlock | SpacerBlock | ReflectionBlock | LinkBlock | RichContentBlock;
 
 interface ArticleEditorProps {
   articleId: string;
@@ -242,13 +261,14 @@ export default function ArticleEditor({ articleId }: ArticleEditorProps) {
       // Load blocks from all dedicated endpoints
       console.log('Loading blocks from all endpoints...');
       try {
-        const [sectionsRes, bulletListsRes, imagesRes, takeawaysRes, reflectionsRes, linksRes] = await Promise.all([
+        const [sectionsRes, bulletListsRes, imagesRes, takeawaysRes, reflectionsRes, linksRes, richContentRes] = await Promise.all([
           fetch(`/api/articles/${articleId}/blocks/sections`, { headers: getAuthHeaders() }),
           fetch(`/api/articles/${articleId}/blocks/bullet-lists`, { headers: getAuthHeaders() }),
           fetch(`/api/articles/${articleId}/blocks/images`, { headers: getAuthHeaders() }),
           fetch(`/api/articles/${articleId}/blocks/key-takeaways`, { headers: getAuthHeaders() }),
           fetch(`/api/articles/${articleId}/blocks/reflections`, { headers: getAuthHeaders() }),
-          fetch(`/api/articles/${articleId}/blocks/links`, { headers: getAuthHeaders() })
+          fetch(`/api/articles/${articleId}/blocks/links`, { headers: getAuthHeaders() }),
+          fetch(`/api/articles/${articleId}/blocks/rich-content`, { headers: getAuthHeaders() })
         ]);
 
         const allBlocks = [];
@@ -316,6 +336,18 @@ export default function ArticleEditor({ articleId }: ArticleEditorProps) {
           allBlocks.push(...linksArray.map((link: Partial<LinkBlock>) => ({
             ...link,
             type: 'link'
+          })));
+        }
+
+        // Process rich-content
+        if (richContentRes.ok) {
+          const richContentData = await richContentRes.json();
+          const richContentArray = richContentData.data || richContentData;
+          console.log('Rich content loaded:', richContentArray.length, richContentArray);
+          allBlocks.push(...richContentArray.map((rc: any) => ({
+            ...rc,
+            type: 'rich-content',
+            items: Array.isArray(rc.items) ? rc.items : [],
           })));
         }
 
@@ -407,7 +439,7 @@ export default function ArticleEditor({ articleId }: ArticleEditorProps) {
     
     switch (type) {
       case "section":
-        newBlock = { type: "section", id, title: "", content: "" };
+        newBlock = { type: "section", id, title: "", subtitle: "", content: "" };
         break;
       case "bullet-list":
         newBlock = { type: "bullet-list", id, title: "", items: [""] };
@@ -426,6 +458,9 @@ export default function ArticleEditor({ articleId }: ArticleEditorProps) {
         break;
       case "link":
         newBlock = { type: "link", id, title: "", url: "", description: "" };
+        break;
+      case "rich-content":
+        newBlock = { type: "rich-content", id, items: [] };
         break;
     }
     
@@ -630,6 +665,7 @@ export default function ArticleEditor({ articleId }: ArticleEditorProps) {
           case "section":
             const sectionData = {
               title: (block as SectionBlock).title || "",
+              subtitle: (block as SectionBlock).subtitle || "",
               content: (block as SectionBlock).content || "",
               order
             };
@@ -807,6 +843,29 @@ export default function ArticleEditor({ articleId }: ArticleEditorProps) {
               });
             }
             break;
+            
+          case "rich-content":
+            const richContentData = {
+              items: (block as any).items || [],
+              order
+            };
+            
+            if (!block.id || block.id.startsWith('temp-')) {
+              console.log(`📝 Creating new rich-content block with ${richContentData.items.length} items`);
+              savePromise = fetch(`/api/articles/${articleId}/blocks/rich-content`, {
+                method: 'POST',
+                headers: getAuthHeaders(),
+                body: JSON.stringify(richContentData),
+              });
+            } else {
+              console.log(`📝 Updating rich-content block (${block.id}) with ${richContentData.items.length} items`);
+              savePromise = fetch(`/api/articles/${articleId}/blocks/rich-content/${block.id}`, {
+                method: 'PUT',
+                headers: getAuthHeaders(),
+                body: JSON.stringify(richContentData),
+              });
+            }
+            break;
         }
         
         // Add the save promise to the array
@@ -878,7 +937,7 @@ export default function ArticleEditor({ articleId }: ArticleEditorProps) {
   };
 
   const BlockControls = ({ index, blockId }: { index: number; blockId: string }) => (
-    <div className="absolute -left-12 top-2 flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+    <div className="absolute left-0 top-2 flex flex-col gap-1 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity">
       <Button 
         variant="ghost" 
         size="icon" 
@@ -901,7 +960,7 @@ export default function ArticleEditor({ articleId }: ArticleEditorProps) {
   );
 
   const BlockActions = ({ blockId, blockType }: { blockId: string; blockType: string }) => (
-    <div className="absolute -right-12 top-2 opacity-0 group-hover:opacity-100 transition-opacity">
+    <div className="absolute right-0 top-2 ">
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" size="icon" className="h-7 w-7 bg-background border shadow-sm">
@@ -1106,6 +1165,12 @@ export default function ArticleEditor({ articleId }: ArticleEditorProps) {
                             onChange={(e) => updateBlock(block.id, { title: e.target.value })}
                             className="text-xl font-bold border-none bg-transparent p-0 h-auto text-[#3c83f6] focus-visible:ring-0"
                           />
+                          <Input 
+                            placeholder="Section Subtitle (optional)"
+                            value={block.subtitle || ""}
+                            onChange={(e) => updateBlock(block.id, { subtitle: e.target.value })}
+                            className="text-base text-muted-foreground border-none bg-transparent p-0 h-auto focus-visible:ring-0"
+                          />
                           <Textarea 
                             placeholder="Write paragraph content..."
                             value={block.content || ""}
@@ -1130,6 +1195,13 @@ export default function ArticleEditor({ articleId }: ArticleEditorProps) {
                               ? block.title 
                               : (block.title as any)?.text || (block.title as any)?.title || "Click to add section title..."}
                           </h2>
+                          {block.subtitle && (
+                            <p className="text-base text-muted-foreground font-medium mt-1">
+                              {typeof block.subtitle === 'string' 
+                                ? block.subtitle 
+                                : (block.subtitle as any)?.text || (block.subtitle as any)?.title || ""}
+                            </p>
+                          )}
                           <p className="text-[#0f1729cc] leading-relaxed mt-2">
                             {typeof block.content === 'string' 
                               ? block.content 
@@ -1458,6 +1530,236 @@ export default function ArticleEditor({ articleId }: ArticleEditorProps) {
                       )}
                     </div>
                   )}
+
+                  {/* Rich Content Block */}
+                  {block.type === "rich-content" && (() => {
+                    const rcBlock = block as RichContentBlock;
+                    const updateItem = (itemId: string, updates: Partial<RichContentItem>) => {
+                      updateBlock(block.id, {
+                        items: rcBlock.items.map(it => it.id === itemId ? { ...it, ...updates } : it)
+                      } as Partial<RichContentBlock>);
+                    };
+                    const removeItem = (itemId: string) => {
+                      updateBlock(block.id, {
+                        items: rcBlock.items.filter(it => it.id !== itemId)
+                      } as Partial<RichContentBlock>);
+                    };
+                    const moveItem = (itemId: string, dir: 'up' | 'down') => {
+                      const idx = rcBlock.items.findIndex(it => it.id === itemId);
+                      if (idx < 0) return;
+                      const newIdx = dir === 'up' ? idx - 1 : idx + 1;
+                      if (newIdx < 0 || newIdx >= rcBlock.items.length) return;
+                      const newItems = [...rcBlock.items];
+                      [newItems[idx], newItems[newIdx]] = [newItems[newIdx], newItems[idx]];
+                      updateBlock(block.id, { items: newItems } as Partial<RichContentBlock>);
+                    };
+                    const addItem = (type: RichContentItem['type']) => {
+                      const newItem: RichContentItem = {
+                        id: `item-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+                        type,
+                        text: '',
+                        bullets: type === 'bullets' ? [''] : undefined,
+                        src: type === 'image' ? '' : undefined,
+                        altText: type === 'image' ? '' : undefined,
+                        title: type === 'link' ? '' : undefined,
+                        url: type === 'link' ? '' : undefined,
+                        description: type === 'link' ? '' : undefined,
+                      };
+                      updateBlock(block.id, { items: [...rcBlock.items, newItem] } as Partial<RichContentBlock>);
+                    };
+
+                    return (
+                    <div className="space-y-3">
+                      {editingBlockId === block.id ? (
+                        <div className="space-y-3 p-4 border border-primary/30 rounded-lg bg-muted/30">
+                          {rcBlock.items.length === 0 && (
+                            <p className="text-sm text-muted-foreground text-center py-4">Start adding content elements below</p>
+                          )}
+
+                          {rcBlock.items.map((item, idx) => (
+                            <div key={item.id} className="space-y-2 p-3 border rounded-lg bg-background relative">
+                              <div className="flex items-center justify-between">
+                                <Badge variant="outline" className="text-xs capitalize">{item.type}</Badge>
+                                <div className="flex gap-1">
+                                  <Button variant="ghost" size="sm" disabled={idx === 0} onClick={() => moveItem(item.id, 'up')}>
+                                    <ChevronUp className="h-3 w-3" />
+                                  </Button>
+                                  <Button variant="ghost" size="sm" disabled={idx === rcBlock.items.length - 1} onClick={() => moveItem(item.id, 'down')}>
+                                    <ChevronDown className="h-3 w-3" />
+                                  </Button>
+                                  <Button variant="ghost" size="sm" onClick={() => removeItem(item.id)}>
+                                    <Trash2 className="h-3 w-3" />
+                                  </Button>
+                                </div>
+                              </div>
+
+                              {item.type === 'heading' && (
+                                <Input
+                                  placeholder="Enter heading..."
+                                  value={item.text || ""}
+                                  onChange={(e) => updateItem(item.id, { text: e.target.value })}
+                                  className="text-lg font-bold"
+                                />
+                              )}
+
+                              {item.type === 'subheading' && (
+                                <Input
+                                  placeholder="Enter sub heading..."
+                                  value={item.text || ""}
+                                  onChange={(e) => updateItem(item.id, { text: e.target.value })}
+                                  className="text-base text-muted-foreground"
+                                />
+                              )}
+
+                              {item.type === 'paragraph' && (
+                                <Textarea
+                                  placeholder="Enter paragraph text..."
+                                  value={item.text || ""}
+                                  onChange={(e) => updateItem(item.id, { text: e.target.value })}
+                                  rows={3}
+                                  className="resize-none"
+                                />
+                              )}
+
+                              {item.type === 'bullets' && (
+                                <div className="space-y-2">
+                                  {(item.bullets || []).map((b, bIdx) => (
+                                    <div key={bIdx} className="flex gap-2">
+                                      <Input
+                                        placeholder={`Bullet ${bIdx + 1}`}
+                                        value={b}
+                                        onChange={(e) => {
+                                          const newBullets = [...(item.bullets || [])];
+                                          newBullets[bIdx] = e.target.value;
+                                          updateItem(item.id, { bullets: newBullets });
+                                        }}
+                                      />
+                                      <Button variant="ghost" size="sm" onClick={() => {
+                                        updateItem(item.id, { bullets: (item.bullets || []).filter((_, i) => i !== bIdx) });
+                                      }}>
+                                        <Trash2 className="h-3 w-3" />
+                                      </Button>
+                                    </div>
+                                  ))}
+                                  <Button variant="outline" size="sm" onClick={() => {
+                                    updateItem(item.id, { bullets: [...(item.bullets || []), ""] });
+                                  }}>
+                                    <Plus className="h-3 w-3 mr-1" /> Add Bullet
+                                  </Button>
+                                </div>
+                              )}
+
+                              {item.type === 'image' && (
+                                <div className="space-y-2">
+                                  <Input
+                                    placeholder="Image URL"
+                                    value={item.src || ""}
+                                    onChange={(e) => updateItem(item.id, { src: e.target.value })}
+                                  />
+                                  <Input
+                                    placeholder="Alt text (optional)"
+                                    value={item.altText || ""}
+                                    onChange={(e) => updateItem(item.id, { altText: e.target.value })}
+                                  />
+                                  {item.src && (
+                                    <img src={item.src} alt={item.altText || ""} className="w-full h-auto rounded-lg border" />
+                                  )}
+                                </div>
+                              )}
+
+                              {item.type === 'link' && (
+                                <div className="space-y-2">
+                                  <Input
+                                    placeholder="Link title"
+                                    value={item.title || ""}
+                                    onChange={(e) => updateItem(item.id, { title: e.target.value })}
+                                  />
+                                  <Input
+                                    placeholder="https://example.com"
+                                    value={item.url || ""}
+                                    onChange={(e) => updateItem(item.id, { url: e.target.value })}
+                                  />
+                                  <Input
+                                    placeholder="Description (optional)"
+                                    value={item.description || ""}
+                                    onChange={(e) => updateItem(item.id, { description: e.target.value })}
+                                  />
+                                </div>
+                              )}
+                            </div>
+                          ))}
+
+                          {/* Add Element Dropdown */}
+                          <div className="flex flex-wrap gap-2 pt-2 border-t">
+                            <Button variant="outline" size="sm" onClick={() => addItem('heading')}>
+                              <Type className="h-3 w-3 mr-1" /> Heading
+                            </Button>
+                            <Button variant="outline" size="sm" onClick={() => addItem('subheading')}>
+                              <Type className="h-3 w-3 mr-1" /> Sub Heading
+                            </Button>
+                            <Button variant="outline" size="sm" onClick={() => addItem('paragraph')}>
+                              <Type className="h-3 w-3 mr-1" /> Paragraph
+                            </Button>
+                            <Button variant="outline" size="sm" onClick={() => addItem('bullets')}>
+                              <List className="h-3 w-3 mr-1" /> Bullet Points
+                            </Button>
+                            <Button variant="outline" size="sm" onClick={() => addItem('image')}>
+                              <Image className="h-3 w-3 mr-1" /> Image
+                            </Button>
+                            <Button variant="outline" size="sm" onClick={() => addItem('link')}>
+                              <Link2 className="h-3 w-3 mr-1" /> Link
+                            </Button>
+                          </div>
+
+                          <Button variant="ghost" size="sm" onClick={() => setEditingBlockId(null)}>
+                            Done Editing
+                          </Button>
+                        </div>
+                      ) : (
+                        <div
+                          className="cursor-pointer hover:bg-muted/30 rounded-lg p-4 border border-border transition-colors space-y-3"
+                          onClick={() => setEditingBlockId(block.id)}
+                        >
+                          {rcBlock.items.length === 0 ? (
+                            <p className="text-muted-foreground">Click to add content elements...</p>
+                          ) : (
+                            rcBlock.items.map((item) => (
+                              <div key={item.id}>
+                                {item.type === 'heading' && item.text && (
+                                  <h2 className="text-2xl font-bold text-primary">{item.text}</h2>
+                                )}
+                                {item.type === 'subheading' && item.text && (
+                                  <p className="text-base text-muted-foreground font-medium">{item.text}</p>
+                                )}
+                                {item.type === 'paragraph' && item.text && (
+                                  <p className="text-foreground leading-relaxed">{item.text}</p>
+                                )}
+                                {item.type === 'bullets' && item.bullets && item.bullets.length > 0 && (
+                                  <ul className="list-disc list-inside space-y-1 text-foreground">
+                                    {item.bullets.map((b, i) => <li key={i}>{b}</li>)}
+                                  </ul>
+                                )}
+                                {item.type === 'image' && item.src && (
+                                  <img src={item.src} alt={item.altText || ""} className="w-full h-auto rounded-lg" />
+                                )}
+                                {item.type === 'link' && item.url && (
+                                  <div className="flex items-start gap-3 p-3 border rounded-lg">
+                                    <Link2 className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+                                    <div className="flex-1 min-w-0">
+                                      <span className="font-medium text-foreground">{item.title}</span>
+                                      <p className="text-xs text-primary/70 truncate mt-0.5">{item.url}</p>
+                                      {item.description && <p className="text-sm text-muted-foreground mt-1">{item.description}</p>}
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            ))
+                          )}
+                        </div>
+                      )}
+                    </div>
+                    );
+                  })()}
                 </div>
               ))}
 
@@ -1498,6 +1800,10 @@ export default function ArticleEditor({ articleId }: ArticleEditorProps) {
                     <DropdownMenuItem onClick={() => addBlock("link")}>
                       <Link2 className="h-4 w-4 mr-2" />
                       Link
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => addBlock("rich-content")}>
+                      <Type className="h-4 w-4 mr-2" />
+                      Rich Content (Heading + Sub + Bullets + Images + Links)
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>

@@ -37,9 +37,10 @@ interface PaginationInfo {
 interface CourseGridProps {
   selectedCategory?: string;
   showSaves?: boolean;
+  searchQuery?: string;
 }
 
-export default function CourseGrid({ selectedCategory = 'all', showSaves = false }: CourseGridProps) {
+export default function CourseGrid({ selectedCategory = 'all', showSaves = false, searchQuery = '' }: CourseGridProps) {
   const [articles, setArticles] = useState<Article[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -90,6 +91,18 @@ export default function CourseGrid({ selectedCategory = 'all', showSaves = false
                 )
               );
             }
+            
+            // Filter by search query
+            if (searchQuery.trim()) {
+              const query = searchQuery.toLowerCase().trim();
+              filteredArticles = filteredArticles.filter((article: Article) => 
+                article.title.toLowerCase().includes(query) ||
+                article.description.toLowerCase().includes(query) ||
+                article.categories.some((cat: any) => 
+                  cat.category.name.toLowerCase().includes(query)
+                )
+              );
+            }
           }
           
           setArticles(filteredArticles);
@@ -116,7 +129,7 @@ export default function CourseGrid({ selectedCategory = 'all', showSaves = false
     };
 
     fetchArticles(currentPage);
-  }, [selectedCategory, showSaves, currentPage]);
+  }, [selectedCategory, showSaves, currentPage, searchQuery]);
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
@@ -191,15 +204,19 @@ export default function CourseGrid({ selectedCategory = 'all', showSaves = false
     return (
       <div className="text-center py-6 sm:py-8 md:py-12 px-3 sm:px-4">
         <div className="text-gray-500 mb-3 sm:mb-4 text-xs sm:text-sm md:text-base">
-          {showSaves 
-            ? 'No saved articles yet. Start exploring and save articles you like!' 
-            : 'No articles available at the moment.'
+          {searchQuery.trim() 
+            ? `No articles found for "${searchQuery}".` 
+            : showSaves 
+              ? 'No saved articles yet. Start exploring and save articles you like!' 
+              : 'No articles available at the moment.'
           }
         </div>
         <p className="text-gray-400 text-[10px] sm:text-xs md:text-sm">
-          {showSaves 
-            ? 'Articles you save will appear here for easy access.' 
-            : 'Check back later for new content!'
+          {searchQuery.trim() 
+            ? 'Try a different search term.' 
+            : showSaves 
+              ? 'Articles you save will appear here for easy access.' 
+              : 'Check back later for new content!'
           }
         </p>
       </div>
