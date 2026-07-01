@@ -6,6 +6,7 @@ import { Lightbulb } from 'lucide-react';
 interface JournalPrompt {
   id: string;
   text: string;
+  type: "WRITING" | "ART";
   moodIds: string[];
   isEnabled: boolean;
   createdAt: string;
@@ -26,7 +27,11 @@ export default function WritingPrompts({ onPromptSelect }: WritingPromptsProps) 
         const response = await fetch('/api/admin/journaling/prompts');
         const data = await response.json();
         if (data.success && data.data) {
-          setPrompts(data.data);
+          // Filter only WRITING type prompts
+          const writingPrompts = data.data.filter((prompt: JournalPrompt) => 
+            prompt.type === 'WRITING' && prompt.isEnabled
+          );
+          setPrompts(writingPrompts);
         }
       } catch (error) {
         console.error('Failed to fetch prompts:', error);
@@ -45,7 +50,7 @@ export default function WritingPrompts({ onPromptSelect }: WritingPromptsProps) 
 
   if (isLoading) {
     return (
-      <div className="bg-white rounded-3xl p-4 sm:p-6 lg:p-8 border border-slate-100 w-full sm:w-[437px] shadow-sm h-[400px] sm:h-[567px] flex flex-col">
+      <div className="bg-white rounded-3xl p-4 sm:p-6 border border-slate-100 w-full shadow-sm flex flex-col">
         <div className="flex items-center gap-2 sm:gap-3 mb-2">
           <div className="p-2 sm:p-2.5 bg-yellow-50 rounded-xl">
             <Lightbulb className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-600" />
@@ -71,7 +76,7 @@ export default function WritingPrompts({ onPromptSelect }: WritingPromptsProps) 
   }
 
   return (
-    <div className="bg-white rounded-[16px] p-4 sm:p-6 lg:p-8 border border-slate-100 w-full sm:w-auto shadow-sm h-auto sm:h-[655px] flex flex-col -mt-2.5">
+    <div className="bg-white rounded-[16px] p-4 sm:p-6 border border-slate-100 w-full shadow-sm flex flex-col">
       <div className="flex items-center gap-2 sm:gap-3 mb-2">
         <div className="p-0.5 sm:-p-2 rounded-xl">
 <img src="/selfhelptools/journaling/Prompt.svg" alt="Editor" className="w-[45px] h-[45px] sm:w-[63px] sm:h-[63px]" />        </div>

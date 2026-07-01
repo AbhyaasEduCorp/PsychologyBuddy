@@ -46,9 +46,10 @@ export class JournalingStudentService {
       }
 
       const journal = await JournalingStudentRepository.createWritingJournal(
-        userId, 
-        data.title, 
-        data.content
+        userId,
+        data.title,
+        data.content,
+        data.mood
       );
 
       return {

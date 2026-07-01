@@ -5,6 +5,8 @@ import { ArrowLeft, Calendar, Trash2, Download, Eye, Grid, List } from 'lucide-r
 import { toast } from 'sonner';
 import StudentLayout from '@/src/components/StudentDashboard/Layout/StudentLayout';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { RingSpinner } from '@/components/ui/Spinners';
 
 interface ArtJournal {
   id: string;
@@ -17,6 +19,7 @@ export default function ArtGalleryPage() {
   const [loading, setLoading] = useState(false);
   const [selectedJournal, setSelectedJournal] = useState<ArtJournal | null>(null);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const router = useRouter();
 
   useEffect(() => {
     fetchArtJournals();
@@ -98,15 +101,15 @@ export default function ArtGalleryPage() {
         <div className="max-w-7xl mx-auto">
           {/* Header */}
           <div className="flex items-center justify-between mb-8">
-            <div className="flex items-center gap-4">
-              <Link 
-                href="/students/selfhelptools/journaling"
-                className="flex items-center gap-2 text-[#73829A] hover:text-[#1a9bcc] transition-colors group"
-              >
-                <ArrowLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
-                <span className="text-[16px]">Back to Journaling</span>
-              </Link>
-            </div>
+            <button
+                          onClick={() => router.push("/students/selfhelptools/journaling")}
+                          className={`flex items-center gap-2 text-[#73829A] hover:text-[#1a9bcc] transition-colors p-2 `}
+                        >
+                          <ArrowLeft className="w-4 h-5" />
+                          <span className="text-[13px] sm:text-[16px]">
+                            Back to Journaling
+                          </span>
+                        </button>
             
             <div className="flex items-center gap-3">
               <div className="bg-white rounded-lg border border-gray-200 p-1 flex">
@@ -152,7 +155,7 @@ export default function ArtGalleryPage() {
 
           {loading && artJournals.length === 0 ? (
             <div className="flex justify-center items-center h-64">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+              <RingSpinner size="lg" color="blue" />
             </div>
           ) : artJournals.length === 0 ? (
             <div className="text-center py-16">

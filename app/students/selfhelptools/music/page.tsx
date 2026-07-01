@@ -8,7 +8,6 @@ import {
   ChevronLeft,
   Heart,
   Play,
-  Loader2,
   Music,
   Bookmark,
   Clock,
@@ -16,6 +15,7 @@ import {
   ArrowLeft,
 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
+import { RingSpinner } from '@/components/ui/Spinners';
 
 import SearchHeader from "@/src/components/StudentDashboard/SelfHelpTools/MusicTherapy/SearchHeader";
 import FilterTabs from "@/src/components/StudentDashboard/SelfHelpTools/MusicTherapy/FilterTabs";
@@ -34,7 +34,12 @@ export default function OptimizedMusicPage() {
   const { toast } = useToast();
 
   // --- UI State ---
-  const [activeTab, setActiveTab] = useState("Recommended");
+  const [activeTab, setActiveTab] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('student-music-active-tab') || 'Recommended';
+    }
+    return 'Recommended';
+  });
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCard, setSelectedCard] = useState<any | null>(null);
   const [showPlayer, setShowPlayer] = useState(false);
@@ -63,6 +68,13 @@ export default function OptimizedMusicPage() {
       setSavedItems(initialSavedItems);
     }
   }, [initialSavedItems]);
+
+  // Save active tab to localStorage when it changes
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('student-music-active-tab', activeTab);
+    }
+  }, [activeTab]);
 
   const { data: catRes } = useSWR("/api/student/music/categories", fetcher);
   const categories = useMemo(() => catRes?.data || [], [catRes]);
@@ -224,7 +236,7 @@ export default function OptimizedMusicPage() {
           {/* GRID */}
           {isLoading ? (
             <div className="flex flex-col items-center py-20">
-              <Loader2 className="w-10 h-10 animate-spin text-blue-500 mb-4" />
+              <RingSpinner size="lg" color="blue" className="mb-4" />
               <p className="text-gray-500">Tuning instruments...</p>
             </div>
           ) : filteredMusicResources.length > 0 ? (

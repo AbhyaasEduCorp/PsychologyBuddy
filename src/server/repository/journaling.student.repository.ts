@@ -2,12 +2,13 @@ import prisma from '@/src/prisma';
 
 export class JournalingStudentRepository {
   // Writing Journals
-  static async createWritingJournal(userId: string, title: string | undefined, content: string) {
+  static async createWritingJournal(userId: string, title: string | undefined, content: string, mood?: string) {
     return await prisma.writingJournal.create({
       data: {
         userId,
         title,
         content,
+        mood,
       },
     });
   }

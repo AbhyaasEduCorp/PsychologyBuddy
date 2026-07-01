@@ -3,6 +3,7 @@
 import React from 'react';
 import { useRouter } from 'next/navigation';
 import { BookOpen, Calendar, Eye } from 'lucide-react';
+import { RingSpinner } from '@/components/ui/Spinners';
 
 interface WritingJournal {
   id: string;
@@ -17,6 +18,15 @@ interface PastEntriesProps {
   onDelete: (id: string) => void;
   loading?: boolean;
 }
+
+const MOODS: Record<string, { label: string; emoji: string; color: string }> = {
+  happy:   { label: 'Happy',   emoji: '/Summary/Happy.svg',   color: 'bg-yellow-50 text-yellow-700 border-yellow-100' },
+  sad:     { label: 'Sad',     emoji: '/Summary/Sad.svg',     color: 'bg-blue-50   text-blue-700   border-blue-100'   },
+  okay:    { label: 'Okay',    emoji: '/Summary/Okay.svg',    color: 'bg-gray-50   text-gray-600   border-gray-100'   },
+  anxious: { label: 'Anxious', emoji: '/Summary/Angry.svg',   color: 'bg-orange-50 text-orange-700 border-orange-100' },
+  tired:   { label: 'Tired',   emoji: '/Summary/Worry.svg',   color: 'bg-purple-50 text-purple-700 border-purple-100' },
+  worried: { label: 'Worried', emoji: '/Summary/Nervous.svg', color: 'bg-red-50    text-red-700    border-red-100'    },
+};
 
 export default function PastEntries({ journals, onDelete, loading }: PastEntriesProps) {
   const router = useRouter();
@@ -51,7 +61,7 @@ export default function PastEntries({ journals, onDelete, loading }: PastEntries
   if (loading) {
     return (
       <div className="text-center py-8">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-cyan-500 mx-auto"></div>
+        <RingSpinner size="md" color="cyan" className="mx-auto" />
         <p className="text-slate-500 mt-2">Loading journals...</p>
       </div>
     );
@@ -68,22 +78,22 @@ export default function PastEntries({ journals, onDelete, loading }: PastEntries
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="p-2.5 bg-cyan-50 rounded-xl">
-            <BookOpen className="w-6 h-6 text-cyan-600" />
+        <div className="flex items-center gap-2 sm:gap-3">
+          <div className="p-2 sm:p-2.5 bg-cyan-50 rounded-xl">
+            <BookOpen className="w-4 h-4 sm:w-6 sm:h-6 text-cyan-600" />
           </div>
           <div>
-            <h2 className="text-2xl font-bold text-slate-900">Your Journals</h2>
-            <p className="text-slate-500 text-sm">See Your Latest Journals</p>
+            <h2 className="text-lg sm:text-2xl font-bold text-slate-900">Your Journals</h2>
+            <p className="text-slate-500 text-xs sm:text-sm">See Your Latest Journals</p>
           </div>
         </div>
         <button 
           onClick={viewAllJournals}
-          className="px-4 py-2 bg-cyan-500 hover:bg-cyan-600 text-white rounded-xl font-medium transition-colors flex items-center gap-2"
+          className="px-3 sm:px-4 py-1.5 sm:py-2 bg-cyan-500 hover:bg-cyan-600 text-white rounded-xl font-medium transition-colors flex items-center gap-1 sm:gap-2 text-xs sm:text-sm"
         >
-          <Eye className="w-4 h-4" />
+          <Eye className="w-3 h-3 sm:w-4 sm:h-4" />
           <span>View All</span>
         </button>
       </div>
@@ -97,10 +107,15 @@ export default function PastEntries({ journals, onDelete, loading }: PastEntries
               onClick={() => openJournal(journal.id)}
             >
               <div className="flex items-start justify-between mb-4">
-                <div className="flex-1">
-                  <h3 className="font-bold text-slate-900 group-hover:text-cyan-600 transition-colors">
-                    {journal.title || 'Untitled Entry'}
-                  </h3>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    {journal.mood && MOODS[journal.mood] && (
+                      <img src={MOODS[journal.mood].emoji} alt={MOODS[journal.mood].label} className="w-6 h-6 flex-shrink-0" />
+                    )}
+                    <h3 className="font-bold text-slate-900 group-hover:text-cyan-600 transition-colors truncate">
+                      {journal.title || 'Untitled Entry'}
+                    </h3>
+                  </div>
                   <div className="flex items-center gap-2 text-xs text-slate-400 mt-2">
                     <Calendar className="w-3.5 h-3.5" />
                     <span>{formatDate(journal.createdAt)}</span>

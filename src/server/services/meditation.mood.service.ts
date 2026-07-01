@@ -37,5 +37,23 @@ export class MeditationMoodService {
       throw error;
     }
   }
+
+  static async deleteMeditationMood(id: string) {
+    try {
+      await prisma.moodLabel.delete({
+        where: { id }
+      });
+      return {
+        success: true,
+        message: 'Meditation mood deleted successfully'
+      };
+    } catch (error) {
+      console.error('Error deleting meditation mood:', error);
+      return {
+        success: false,
+        error: 'Failed to delete meditation mood'
+      };
+    }
+  }
 }
 

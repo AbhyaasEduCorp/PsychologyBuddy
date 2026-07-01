@@ -53,7 +53,8 @@ export class GoalController {
     action: 'VIEW' 
   })(async (req: NextRequest, { params }: any) => {
     try {
-      const result = await GoalService.getGoalById(params.id);
+      const { id } = await params;
+      const result = await GoalService.getGoalById(id);
       return NextResponse.json(result);
     } catch (error) {
       console.error('Get goal error:', error);
@@ -70,8 +71,9 @@ export class GoalController {
     try {
       const body = await req.json();
       const validatedData = UpdateGoalSchema.parse(body);
+      const { id } = await params;
       
-      const result = await GoalService.updateGoal(params.id, validatedData);
+      const result = await GoalService.updateGoal(id, validatedData);
       return NextResponse.json(result);
     } catch (error) {
       console.error('Update goal error:', error);
@@ -86,7 +88,8 @@ export class GoalController {
     action: 'DELETE' 
   })(async (req: NextRequest, { params }: any) => {
     try {
-      const result = await GoalService.deleteGoal(params.id);
+      const { id } = await params;
+      const result = await GoalService.deleteGoal(id);
       return NextResponse.json(result);
     } catch (error) {
       console.error('Delete goal error:', error);

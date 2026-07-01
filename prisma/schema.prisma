@@ -324,6 +324,7 @@ model JournalingToolConfig {
   enableUndo        Boolean @default(true)
   enableRedo        Boolean @default(true)
   enableClearCanvas Boolean @default(true)
+  enableColorPalette Boolean @default(true)
   school            School  @relation(fields: [schoolId], references: [id], onDelete: Cascade)
 
   @@map("JournalingToolConfig")
@@ -334,6 +335,7 @@ model WritingJournal {
   userId    String
   title     String?
   content   String
+  mood      String?
   createdAt DateTime @default(now())
   user      User     @relation(fields: [userId], references: [id])
 
@@ -365,6 +367,7 @@ model ArtJournal {
 model JournalingPrompt {
   id        String   @id @default(uuid())
   text      String
+  type      String   @default("WRITING")
   moodIds   String[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -544,6 +547,7 @@ model Article {
   reflectionBlocks   ReflectionBlock[]
   savedArticles      SavedArticle[]      @relation("ArticleSaves")
   sectionBlocks      SectionBlock[]
+  richContentBlocks  RichContentBlock[]
 
   @@map("Articles")
 }
@@ -843,11 +847,22 @@ model LinkBlock {
   @@map("LinkBlocks")
 }
 
+model RichContentBlock {
+  id          String  @id @default(uuid())
+  articleId   String
+  order       Int
+  items       Json
+  article     Article @relation(fields: [articleId], references: [id], onDelete: Cascade)
+
+  @@map("RichContentBlocks")
+}
+
 model SectionBlock {
   id        String  @id @default(uuid())
   articleId String
   order     Int
   title     String
+  subtitle  String?
   content   String
   article   Article @relation(fields: [articleId], references: [id], onDelete: Cascade)
 
@@ -859,7 +874,7 @@ model BulletListBlock {
   articleId String
   order     Int
   title     String
-  items     String[]
+  items     Json
   article   Article  @relation(fields: [articleId], references: [id], onDelete: Cascade)
 
   @@map("BulletListBlocks")

@@ -82,6 +82,8 @@ export default function MusicTools({
   const [musicGoals, setMusicGoals] = useState<any[]>([]);
   const [musicCategories, setMusicCategories] = useState<string[]>([]);
   const [musicCategoriesMap, setMusicCategoriesMap] = useState<{[key: string]: string}>({});
+  const [musicCategoryObjects, setMusicCategoryObjects] = useState<any[]>([]);
+  const [editingCategoryId, setEditingCategoryId] = useState<string | null>(null);
   const [musicGoalsMap, setMusicGoalsMap] = useState<{[key: string]: string}>({});
   const [musicMoodsMap, setMusicMoodsMap] = useState<{[key: string]: string}>({});
   
@@ -209,6 +211,7 @@ export default function MusicTools({
         });
         setMusicCategories(categoryNames);
         setMusicCategoriesMap(categoryMap);
+        setMusicCategoryObjects(data.data);
       }
     } catch (error) {
       toast({ title: "Error", description: "Failed to fetch music categories", variant: "destructive" });
@@ -1410,7 +1413,7 @@ export default function MusicTools({
                     <PopoverContent className="w-full p-2 border bg-white shadow-xl rounded-[6px]" align="start">
                       <div className="space-y-2">
                         {musicMoods.map((mood) => (
-                          <div key={mood.id} className="flex items-center gap-2 px-2 py-1.5 rounded cursor-pointer hover:bg-muted" onClick={() => {
+                          <div key={mood.id} className="flex items-center gap-2 px-2 py-1.5 rounded cursor-pointer hover:bg-muted group" onClick={() => {
                             if (musicForm.supportedMoods?.includes(mood.name)) {
                               setMusicForm(prev => ({ ...prev, supportedMoods: prev.supportedMoods?.filter(m => m !== mood.name) }));
                             } else {
@@ -1420,7 +1423,27 @@ export default function MusicTools({
                             <div className={`h-4 w-4 border rounded flex items-center justify-center ${musicForm.supportedMoods?.includes(mood.name) ? 'bg-primary border-primary' : 'border-input'}`}>
                               {musicForm.supportedMoods?.includes(mood.name) && <Check className="h-3 w-3 text-primary-foreground" />}
                             </div>
-                            <span className="text-sm">{mood.name}</span>
+                            <span className="text-sm flex-1">{mood.name}</span>
+                            <button
+                              className="opacity-0 group-hover:opacity-100 text-destructive hover:text-destructive transition-opacity"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (!confirm(`Delete mood "${mood.name}"?`)) return;
+                                fetch(`/api/admin/music/moods/${mood.id}`, { method: 'DELETE' })
+                                  .then(res => res.json())
+                                  .then(data => {
+                                    if (data.success) {
+                                      toast({ title: "Success", description: "Mood deleted successfully" });
+                                      fetchMoods();
+                                    } else {
+                                      toast({ title: "Error", description: data.error || data.message || "Failed to delete mood", variant: "destructive" });
+                                    }
+                                  })
+                                  .catch(() => toast({ title: "Error", description: "Failed to delete mood", variant: "destructive" }));
+                              }}
+                            >
+                              <X className="h-3.5 w-3.5" />
+                            </button>
                           </div>
                         ))}
                         <div className="border-t pt-2 mt-2">
@@ -1466,11 +1489,31 @@ export default function MusicTools({
                     <PopoverContent className="w-full p-2 border bg-white shadow-xl rounded-[6px]" align="start">
                       <div className="space-y-2">
                         {musicGoals.map((goal) => (
-                          <div key={goal.id} className="flex items-center gap-2 px-2 py-1.5 rounded cursor-pointer hover:bg-muted" onClick={() => { setMusicForm(prev => ({ ...prev, goal: goal.name })); setIsMusicGoalPopoverOpen(false); }}>
+                          <div key={goal.id} className="flex items-center gap-2 px-2 py-1.5 rounded cursor-pointer hover:bg-muted group" onClick={() => { setMusicForm(prev => ({ ...prev, goal: goal.name })); setIsMusicGoalPopoverOpen(false); }}>
                             <div className={`h-4 w-4 border rounded-full flex items-center justify-center ${musicForm.goal === goal.name ? 'bg-primary border-primary' : 'border-input'}`}>
                               {musicForm.goal === goal.name && <div className="h-2 w-2 rounded-full bg-primary-foreground" />}
                             </div>
-                            <span className="text-sm">{goal.name}</span>
+                            <span className="text-sm flex-1">{goal.name}</span>
+                            <button
+                              className="opacity-0 group-hover:opacity-100 text-destructive hover:text-destructive transition-opacity"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (!confirm(`Delete goal "${goal.name}"?`)) return;
+                                fetch(`/api/admin/music/goals/${goal.id}`, { method: 'DELETE' })
+                                  .then(res => res.json())
+                                  .then(data => {
+                                    if (data.success) {
+                                      toast({ title: "Success", description: "Goal deleted successfully" });
+                                      fetchGoals();
+                                    } else {
+                                      toast({ title: "Error", description: data.error || data.message || "Failed to delete goal", variant: "destructive" });
+                                    }
+                                  })
+                                  .catch(() => toast({ title: "Error", description: "Failed to delete goal", variant: "destructive" }));
+                              }}
+                            >
+                              <X className="h-3.5 w-3.5" />
+                            </button>
                           </div>
                         ))}
                         <div className="border-t pt-2 mt-2">
@@ -1732,7 +1775,7 @@ export default function MusicTools({
                     <PopoverContent className="w-full p-2 border bg-white shadow-xl rounded-[6px]" align="start">
                       <div className="space-y-2">
                         {musicMoods.map((mood) => (
-                          <div key={mood.id} className="flex items-center gap-2 px-2 py-1.5 rounded cursor-pointer hover:bg-muted" onClick={() => {
+                          <div key={mood.id} className="flex items-center gap-2 px-2 py-1.5 rounded cursor-pointer hover:bg-muted group" onClick={() => {
                             if (musicForm.supportedMoods?.includes(mood.name)) {
                               setMusicForm(prev => ({ ...prev, supportedMoods: prev.supportedMoods?.filter(m => m !== mood.name) }));
                             } else {
@@ -1742,7 +1785,27 @@ export default function MusicTools({
                             <div className={`h-4 w-4 border rounded flex items-center justify-center ${musicForm.supportedMoods?.includes(mood.name) ? 'bg-primary border-primary' : 'border-input'}`}>
                               {musicForm.supportedMoods?.includes(mood.name) && <Check className="h-3 w-3 text-primary-foreground" />}
                             </div>
-                            <span className="text-sm">{mood.name}</span>
+                            <span className="text-sm flex-1">{mood.name}</span>
+                            <button
+                              className="opacity-0 group-hover:opacity-100 text-destructive hover:text-destructive transition-opacity"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (!confirm(`Delete mood "${mood.name}"?`)) return;
+                                fetch(`/api/admin/music/moods/${mood.id}`, { method: 'DELETE' })
+                                  .then(res => res.json())
+                                  .then(data => {
+                                    if (data.success) {
+                                      toast({ title: "Success", description: "Mood deleted successfully" });
+                                      fetchMoods();
+                                    } else {
+                                      toast({ title: "Error", description: data.error || data.message || "Failed to delete mood", variant: "destructive" });
+                                    }
+                                  })
+                                  .catch(() => toast({ title: "Error", description: "Failed to delete mood", variant: "destructive" }));
+                              }}
+                            >
+                              <X className="h-3.5 w-3.5" />
+                            </button>
                           </div>
                         ))}
                         <div className="border-t pt-2 mt-2">
@@ -1797,11 +1860,31 @@ export default function MusicTools({
                     <PopoverContent className="w-full p-2 border bg-white shadow-xl rounded-[6px]" align="start">
                       <div className="space-y-2">
                         {musicGoals.map((goal) => (
-                          <div key={goal.id} className="flex items-center gap-2 px-2 py-1.5 rounded cursor-pointer hover:bg-muted" onClick={() => { setMusicForm(prev => ({ ...prev, goal: goal.name })); setIsMusicGoalPopoverOpen(false); }}>
+                          <div key={goal.id} className="flex items-center gap-2 px-2 py-1.5 rounded cursor-pointer hover:bg-muted group" onClick={() => { setMusicForm(prev => ({ ...prev, goal: goal.name })); setIsMusicGoalPopoverOpen(false); }}>
                             <div className={`h-4 w-4 border rounded-full flex items-center justify-center ${musicForm.goal === goal.name ? 'bg-primary border-primary' : 'border-input'}`}>
                               {musicForm.goal === goal.name && <div className="h-2 w-2 rounded-full bg-primary-foreground" />}
                             </div>
-                            <span className="text-sm">{goal.name}</span>
+                            <span className="text-sm flex-1">{goal.name}</span>
+                            <button
+                              className="opacity-0 group-hover:opacity-100 text-destructive hover:text-destructive transition-opacity"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (!confirm(`Delete goal "${goal.name}"?`)) return;
+                                fetch(`/api/admin/music/goals/${goal.id}`, { method: 'DELETE' })
+                                  .then(res => res.json())
+                                  .then(data => {
+                                    if (data.success) {
+                                      toast({ title: "Success", description: "Goal deleted successfully" });
+                                      fetchGoals();
+                                    } else {
+                                      toast({ title: "Error", description: data.error || data.message || "Failed to delete goal", variant: "destructive" });
+                                    }
+                                  })
+                                  .catch(() => toast({ title: "Error", description: "Failed to delete goal", variant: "destructive" }));
+                              }}
+                            >
+                              <X className="h-3.5 w-3.5" />
+                            </button>
                           </div>
                         ))}
                         <div className="border-t pt-2 mt-2">
@@ -1908,13 +1991,19 @@ export default function MusicTools({
         </DialogContent>
       </Dialog>
 
-      {/* Add Category Modal */}
-      <Dialog open={isAddMusicCategoryOpen} onOpenChange={setIsAddMusicCategoryOpen}>
+      {/* Add/Edit Category Modal */}
+      <Dialog open={isAddMusicCategoryOpen} onOpenChange={(open) => {
+        if (!open) {
+          setEditingCategoryId(null);
+          setCategoryForm({ name: "", description: "", icon: "", color: "#3B82F6", status: "ACTIVE" });
+        }
+        setIsAddMusicCategoryOpen?.(open);
+      }}>
         <DialogContent className="sm:max-w-md bg-white" onInteractOutside={(e) => e.preventDefault()}>
           <DialogHeader>
-            <DialogTitle>Add Music Category</DialogTitle>
+            <DialogTitle>{editingCategoryId ? "Edit" : "Add"} Music Category</DialogTitle>
             <DialogDescription className='text-[#65758b]'>
-              Create a new category for organizing music resources.
+              {editingCategoryId ? "Edit the category details." : "Create a new category for organizing music resources."}
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
@@ -1941,17 +2030,105 @@ export default function MusicTools({
                 </SelectContent>
               </Select>
             </div>
+            {musicCategoryObjects.length > 0 && (
+              <div className="grid gap-2">
+                <Label>Existing Categories</Label>
+                <div className="space-y-2 max-h-40 overflow-y-auto">
+                  {musicCategoryObjects.map((cat) => (
+                    <div key={cat.id} className="flex items-center justify-between p-2 rounded-lg border border-border">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium">{cat.name}</span>
+                        <Badge variant={cat.status === "ACTIVE" ? "default" : "secondary"} className="text-xs">
+                          {cat.status === "ACTIVE" ? "Active" : "Inactive"}
+                        </Badge>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7"
+                          onClick={() => {
+                            setEditingCategoryId(cat.id);
+                            setCategoryForm({
+                              name: cat.name,
+                              description: cat.description || "",
+                              icon: cat.icon || "",
+                              color: cat.color || "#3B82F6",
+                              status: cat.status || "ACTIVE",
+                            });
+                          }}
+                        >
+                          <Edit className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 text-destructive hover:text-destructive"
+                          onClick={async () => {
+                            if (!confirm(`Delete category "${cat.name}"?`)) return;
+                            try {
+                              const response = await fetch(`/api/admin/music/categories/${cat.id}`, {
+                                method: 'DELETE',
+                                headers: { 'Content-Type': 'application/json', 'x-user-id': user?.id || '' },
+                              });
+                              const data = await response.json();
+                              if (data.success) {
+                                toast({ title: "Success", description: "Category deleted successfully" });
+                                await fetchMusicCategories();
+                              } else {
+                                toast({ title: "Error", description: data.message || data.error || "Failed to delete category", variant: "destructive" });
+                              }
+                            } catch (error) {
+                              toast({ title: "Error", description: "Failed to delete category", variant: "destructive" });
+                            }
+                          }}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsAddMusicCategoryOpen?.(false)}>
+            <Button variant="outline" onClick={() => {
+              setEditingCategoryId(null);
+              setCategoryForm({ name: "", description: "", icon: "", color: "#3B82F6", status: "ACTIVE" });
+              setIsAddMusicCategoryOpen?.(false);
+            }}>
               Cancel
             </Button>
             <LoadingButton 
-              onClick={createMusicCategory}
+              onClick={editingCategoryId ? async () => {
+                setIsSubmitting(true);
+                try {
+                  const response = await fetch(`/api/admin/music/categories/${editingCategoryId}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json', 'x-user-id': user?.id || '' },
+                    body: JSON.stringify({ id: editingCategoryId, ...categoryForm }),
+                  });
+                  const data = await response.json();
+                  if (data.success) {
+                    toast({ title: "Success", description: "Category updated successfully" });
+                    setCategoryForm({ name: "", description: "", icon: "", color: "#3B82F6", status: "ACTIVE" });
+                    setEditingCategoryId(null);
+                    setIsAddMusicCategoryOpen?.(false);
+                    await fetchMusicCategories();
+                  } else {
+                    toast({ title: "Error", description: data.error || "Failed to update category", variant: "destructive" });
+                  }
+                } catch (error) {
+                  toast({ title: "Error", description: "Failed to update category", variant: "destructive" });
+                } finally {
+                  setIsSubmitting(false);
+                }
+              } : createMusicCategory}
               disabled={isSubmitting}
-              loadingText="Creating..."
+              loadingText={editingCategoryId ? "Updating..." : "Creating..."}
             >
-              Create Category
+              {editingCategoryId ? "Update Category" : "Create Category"}
             </LoadingButton>
           </DialogFooter>
         </DialogContent>

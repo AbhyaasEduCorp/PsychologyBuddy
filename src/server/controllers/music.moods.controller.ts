@@ -44,7 +44,8 @@ export class MusicMoodsController {
     action: 'VIEW' 
   })(async (req: NextRequest, { params }: any) => {
     try {
-      const result = await MusicMoodsService.getMusicMoodById(params.id);
+      const { id } = await params;
+      const result = await MusicMoodsService.getMusicMoodById(id);
       return NextResponse.json(result);
     } catch (error) {
       console.error('Get music mood error:', error);
@@ -61,8 +62,9 @@ export class MusicMoodsController {
     try {
       const body = await req.json();
       const validatedData = UpdateMusicMoodSchema.parse(body);
+      const { id } = await params;
       
-      const result = await MusicMoodsService.updateMusicMood(params.id, validatedData);
+      const result = await MusicMoodsService.updateMusicMood(id, validatedData);
       return NextResponse.json(result);
     } catch (error) {
       console.error('Update music mood error:', error);
@@ -77,7 +79,8 @@ export class MusicMoodsController {
     action: 'DELETE' 
   })(async (req: NextRequest, { params }: any) => {
     try {
-      const result = await MusicMoodsService.deleteMusicMood(params.id);
+      const { id } = await params;
+      const result = await MusicMoodsService.deleteMusicMood(id);
       return NextResponse.json(result);
     } catch (error) {
       console.error('Delete music mood error:', error);

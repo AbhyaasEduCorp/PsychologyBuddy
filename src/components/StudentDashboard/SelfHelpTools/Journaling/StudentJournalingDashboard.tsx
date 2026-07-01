@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/src/contexts/AuthContext';
 import JournalTabs from './JournalTabs';
 import WritingJournalEditor from './Writing/JournalEditor';
@@ -8,7 +8,9 @@ import WritingPrompts from './Writing/WritingPrompts';
 import PastEntries from './Writing/PastEntries';
 import AudioRecorder from './Audio/AudioRecorder';
 import AudioJournalList from './Audio/AudioJournalList';
+import { RingSpinner } from '@/components/ui/Spinners';
 import DrawingCanvas from './Art/DrawingCanvas';
+import ArtPrompts from './Art/ArtPrompts';
 import JournalHistory from './Art/JournalHistory';
 import MoodSelector from './MoodSelector';
 import Header from './Header';
@@ -32,12 +34,20 @@ export default function StudentJournalingDashboard() {
   const [config, setConfig] = useState<JournalingConfig | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedMood, setSelectedMood] = useState<string | null>(null);
-  
+  const moodRef = useRef<string | null>(null);
+
   // Writing journal state
   const [journalTitle, setJournalTitle] = useState('');
   const [journalContent, setJournalContent] = useState('');
   const [selectedPrompt, setSelectedPrompt] = useState<string | null>(null);
   const [isSavingJournal, setIsSavingJournal] = useState(false);
+
+  // Art journal state
+  const [artPrompt, setArtPrompt] = useState<string | null>(null);
+  const [artPrompts, setArtPrompts] = useState<Array<{ id: string; text: string; type: string; isEnabled: boolean }>>([]);
+  const [isSavingArt, setIsSavingArt] = useState(false);
+  const [artJournals, setArtJournals] = useState<Array<{ id: string; imageUrl: string; createdAt: string }>>([]);
+  const [isDeletingArt, setIsDeletingArt] = useState(false);
   
   // Fetch journaling configuration for student's school
   const fetchJournalingConfig = async () => {
@@ -103,41 +113,41 @@ export default function StudentJournalingDashboard() {
 
   // Save writing journal
   const saveWritingJournal = async () => {
+    console.log('=== SAVE DEBUG ===');
+    console.log('selectedMood state:', selectedMood);
+    console.log('moodRef.current:', moodRef.current);
+
     if (!journalContent.trim()) {
-      console.error('Please write something before saving');
       return;
     }
-    
+
     setIsSavingJournal(true);
     try {
+      const payload = {
+        title: journalTitle || 'Untitled Entry',
+        content: selectedPrompt ? `Prompt: ${selectedPrompt}\n\n${journalContent}` : journalContent,
+        mood: moodRef.current,
+      };
+      console.log('Sending payload:', payload);
+
       const response = await fetch('/api/student/journals/writing', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           "x-user-id": user?.id || "",
         },
-        body: JSON.stringify({
-          title: journalTitle || 'Untitled Entry',
-          content: selectedPrompt ? `Prompt: ${selectedPrompt}\n\n${journalContent}` : journalContent,
-          mood: selectedMood,
-        }),
+        body: JSON.stringify(payload),
       });
-      
+
       const data = await response.json();
-      
+
       if (data.success) {
-        console.log('Journal entry saved successfully');
-        
         // Clear form
         setJournalTitle('');
         setJournalContent('');
         setSelectedPrompt(null);
         setSelectedMood(null);
-        
-        // Refresh past entries
-        // This would trigger a refresh of the PastEntries component
-      } else {
-        console.error('Failed to save journal entry:', data.error);
+        moodRef.current = null;
       }
     } catch (error) {
       console.error('Failed to save journal:', error);
@@ -145,17 +155,125 @@ export default function StudentJournalingDashboard() {
       setIsSavingJournal(false);
     }
   };
+
+  // Handle mood selection - update both state and ref
+  const handleMoodSelect = (mood: string | null) => {
+    setSelectedMood(mood);
+    moodRef.current = mood;
+  };
+
+  // Fetch a random art prompt
+  const handleNewArtPrompt = () => {
+    if (artPrompts.length === 0) return;
+    const randomIndex = Math.floor(Math.random() * artPrompts.length);
+    setArtPrompt(artPrompts[randomIndex].text);
+  };
+
+  // Handle art prompt selection from list
+  const handleArtPromptSelect = (prompt: string) => {
+    setArtPrompt(prompt);
+  };
+
+  // Fetch art journals
+  const fetchArtJournals = async () => {
+    try {
+      const response = await fetch('/api/student/journals/art', {
+        headers: {
+          'x-user-id': user?.id || '',
+        },
+      });
+      const data = await response.json();
+      if (data.success && data.data) {
+        setArtJournals(data.data);
+      }
+    } catch (error) {
+      console.error('Failed to fetch art journals:', error);
+    }
+  };
+
+  // Delete art journal
+  const deleteArtJournal = async (id: string) => {
+    setIsDeletingArt(true);
+    try {
+      const response = await fetch(`/api/student/journals/art?id=${id}`, {
+        method: 'DELETE',
+        headers: {
+          'x-user-id': user?.id || '',
+        },
+      });
+      const data = await response.json();
+      if (data.success) {
+        setArtJournals(prev => prev.filter(j => j.id !== id));
+      }
+    } catch (error) {
+      console.error('Failed to delete art journal:', error);
+    } finally {
+      setIsDeletingArt(false);
+    }
+  };
+
+  // Save art journal
+  const saveArtJournal = async (imageDataUrl: string) => {
+    setIsSavingArt(true);
+    try {
+      const response = await fetch('/api/student/journals/art', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-user-id': user?.id || '',
+        },
+        body: JSON.stringify({
+          imageUrl: imageDataUrl,
+          prompt: artPrompt || undefined,
+          mood: moodRef.current,
+        }),
+      });
+      const data = await response.json();
+      if (data.success) {
+        setArtPrompt(null);
+        fetchArtJournals();
+      }
+    } catch (error) {
+      console.error('Failed to save art journal:', error);
+    } finally {
+      setIsSavingArt(false);
+    }
+  };
   
   // Load configuration on mount
   useEffect(() => {
     fetchJournalingConfig();
+  }, [user?.id]);
+
+  // Fetch art journals on mount
+  useEffect(() => {
+    if (user?.id) {
+      fetchArtJournals();
+    }
+  }, [user?.id]);
+
+  // Fetch art prompts for the "New Prompt" button
+  useEffect(() => {
+    const fetchArtPrompts = async () => {
+      try {
+        const response = await fetch('/api/admin/journaling/prompts');
+        const data = await response.json();
+        if (data.success && data.data) {
+          const artOnly = data.data.filter((p: any) => p.type === 'ART' && p.isEnabled);
+          setArtPrompts(artOnly);
+        }
+      } catch (error) {
+        console.error('Failed to fetch art prompts:', error);
+      }
+    };
+    fetchArtPrompts();
   }, [user?.id]);
   
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 sm:h-12 sm:w-12 border-b-2 border-blue-600 mx-auto mb-3 sm:mb-4"></div>
+          <RingSpinner size="lg" color="blue" className="mx-auto mb-3 sm:mb-4" />
           <p className="text-sm sm:text-base text-gray-600">Loading journaling tools...</p>
         </div>
       </div>
@@ -202,35 +320,39 @@ export default function StudentJournalingDashboard() {
         
         {/* Mood Selector */}
         <div className="mb-6">
-          <MoodSelector 
+          <MoodSelector
             selectedMood={selectedMood}
-            onMoodSelect={setSelectedMood}
+            onMoodSelect={handleMoodSelect}
           />
         </div>
         
         {/* Tab Content */}
         <div className="max-w-4xl mx-auto">
           {activeTab === 'writing' && config?.writingEnabled && (
-            <div className="space-y-4 sm:space-y-6">
-              <WritingPrompts onPromptSelect={handlePromptSelect} />
-              <WritingJournalEditor
-                title={journalTitle}
-                content={journalContent}
-                prompt={selectedPrompt || undefined}
-                onTitleChange={setJournalTitle}
-                onContentChange={setJournalContent}
-                onSave={saveWritingJournal}
-                onClear={() => {
-                  setJournalTitle('');
-                  setJournalContent('');
-                  setSelectedPrompt(null);
-                }}
-                loading={isSavingJournal}
-              />
-              {/* PastEntries will be implemented with proper props later */}
-              <div className="bg-white rounded-2xl p-4 sm:p-6 shadow-sm">
-                <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-3 sm:mb-4">Past Entries</h3>
-                <p className="text-sm sm:text-base text-gray-500">Your past journal entries will appear here.</p>
+            <div className="flex flex-col md:flex-row gap-4 md:gap-6 items-start">
+              <div id="writing-prompts" className="w-full md:w-[260px] lg:w-[340px] flex-shrink-0">
+                <WritingPrompts onPromptSelect={handlePromptSelect} />
+              </div>
+              <div className="flex-1 min-w-0 space-y-4 sm:space-y-6">
+                <WritingJournalEditor
+                  title={journalTitle}
+                  content={journalContent}
+                  prompt={selectedPrompt || undefined}
+                  onTitleChange={setJournalTitle}
+                  onContentChange={setJournalContent}
+                  onSave={saveWritingJournal}
+                  onClear={() => {
+                    setJournalTitle('');
+                    setJournalContent('');
+                    setSelectedPrompt(null);
+                  }}
+                  loading={isSavingJournal}
+                />
+                {/* PastEntries will be implemented with proper props later */}
+                <div className="bg-white rounded-2xl p-4 sm:p-6 shadow-sm">
+                  <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-3 sm:mb-4">Past Entries</h3>
+                  <p className="text-sm sm:text-base text-gray-500">Your past journal entries will appear here.</p>
+                </div>
               </div>
             </div>
           )}
@@ -251,16 +373,28 @@ export default function StudentJournalingDashboard() {
           )}
           
           {activeTab === 'art' && config?.artEnabled && (
-            <div className="space-y-4 sm:space-y-6">
-              {/* DrawingCanvas will be implemented with proper props later */}
-              <div className="bg-white rounded-2xl p-4 sm:p-6 shadow-sm">
-                <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-3 sm:mb-4">Art Canvas</h3>
-                <p className="text-sm sm:text-base text-gray-500">Drawing canvas will be available here.</p>
+            <div className="flex flex-col md:flex-row gap-4 md:gap-6 items-start">
+              <div id="art-prompts" className="w-full md:w-[260px] lg:w-[340px] flex-shrink-0">
+                <ArtPrompts onPromptSelect={handleArtPromptSelect} />
               </div>
-              {/* JournalHistory will be implemented with proper props later */}
-              <div className="bg-white rounded-2xl p-4 sm:p-6 shadow-sm">
-                <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-3 sm:mb-4">Art Journal History</h3>
-                <p className="text-sm sm:text-base text-gray-500">Your art journal entries will appear here.</p>
+              <div className="flex-1 min-w-0 space-y-4 sm:space-y-6">
+                <DrawingCanvas
+                  onSave={saveArtJournal}
+                  loading={isSavingArt}
+                  prompt={artPrompt || undefined}
+                  onNewPrompt={handleNewArtPrompt}
+                  config={{
+                    enableUndo: config?.enableUndo,
+                    enableRedo: config?.enableRedo,
+                    enableClearCanvas: config?.enableClearCanvas,
+                    enableColorPalette: config?.enableColorPalette,
+                  }}
+                />
+                <JournalHistory
+                  journals={artJournals}
+                  onDelete={deleteArtJournal}
+                  loading={isDeletingArt}
+                />
               </div>
             </div>
           )}

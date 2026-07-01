@@ -44,7 +44,8 @@ export class MoodController {
     action: 'VIEW' 
   })(async (req: NextRequest, { params }: any) => {
     try {
-      const result = await MoodService.getMoodById(params.id);
+      const { id } = await params;
+      const result = await MoodService.getMoodById(id);
       return NextResponse.json(result);
     } catch (error) {
       console.error('Get mood error:', error);
@@ -61,8 +62,9 @@ export class MoodController {
     try {
       const body = await req.json();
       const validatedData = UpdateMoodSchema.parse(body);
+      const { id } = await params;
       
-      const result = await MoodService.updateMood(params.id, validatedData);
+      const result = await MoodService.updateMood(id, validatedData);
       return NextResponse.json(result);
     } catch (error) {
       console.error('Update mood error:', error);
@@ -77,7 +79,8 @@ export class MoodController {
     action: 'DELETE' 
   })(async (req: NextRequest, { params }: any) => {
     try {
-      const result = await MoodService.deleteMood(params.id);
+      const { id } = await params;
+      const result = await MoodService.deleteMood(id);
       return NextResponse.json(result);
     } catch (error) {
       console.error('Delete mood error:', error);

@@ -21,7 +21,7 @@ export default function MoodSelector({ selectedMood, onMoodSelect }: MoodSelecto
   return (
     <div className="bg-white h-auto rounded-[25px] sm:rounded-[32px] p-4 sm:p-6 lg:p-8 shadow-sm border border-gray-100 mb-6 sm:mb-8">
       <h3 className="text-[#686D70] mb-2 sm:mb-4 ml-2 sm:ml-4 text-[12px] sm:text-[16px] font-medium">How are you feeling right now?</h3>
-      <div className="flex items-center px-2 sm:px-4 gap-2 sm:gap-12">
+      <div className="flex items-center justify-between px-2 sm:px-4 gap-1 sm:gap-3 md:gap-6 lg:gap-10">
         {moods.map((mood) => (
           <button
             key={mood.id}

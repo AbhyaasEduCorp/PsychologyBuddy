@@ -4,6 +4,7 @@ import { z } from 'zod';
 export const CreateWritingJournalSchema = z.object({
   title: z.string().optional(),
   content: z.string().min(1, 'Content is required'),
+  mood: z.string().optional(),
 });
 
 export const DeleteWritingJournalSchema = z.object({
@@ -40,21 +41,22 @@ export const UpdateJournalingConfigSchema = z.object({
   enableUndo: z.boolean().optional(),
   enableRedo: z.boolean().optional(),
   enableClearCanvas: z.boolean().optional(),
-  // enableColorPalette: z.boolean().optional(), // Field doesn't exist in database schema
+  enableColorPalette: z.boolean().optional(),
   schoolId: z.string().optional(),
 });
 
 // Admin Prompt Validators
 export const CreateJournalingPromptSchema = z.object({
   text: z.string().min(1, 'Prompt text is required'),
+  type: z.enum(['WRITING', 'ART']).default('WRITING'),
   moodIds: z.array(z.string()).optional(),
-  journalTypes: z.array(z.enum(['writing', 'art'])).optional(),
   isEnabled: z.boolean().optional(),
   schoolId: z.string().optional(),
 });
 
 export const UpdateJournalingPromptSchema = z.object({
   text: z.string().min(1, 'Prompt text is required').optional(),
+  type: z.enum(['WRITING', 'ART']).optional(),
   moodIds: z.array(z.string()).min(1, 'At least one mood ID is required').optional(),
   isEnabled: z.boolean().optional(),
   schoolId: z.string().optional(),

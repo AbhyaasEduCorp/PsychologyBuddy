@@ -13,6 +13,7 @@ import {
   Trophy,
 } from "lucide-react";
 import StudentLayout from "@/src/components/StudentDashboard/Layout/StudentLayout";
+import { RingSpinner } from '@/components/ui/Spinners';
 import BadgeUnlockedModal from "./BadgeUnlockedModal";
 import BackToDashboard from "../Layout/BackToDashboard";
 import Image from "next/image";
@@ -100,7 +101,7 @@ export default function BadgesStreaksPage() {
     return (
       <StudentLayout>
         <div className="flex items-center justify-center min-h-[300px] sm:min-h-[400px]">
-          <div className="animate-spin rounded-full h-8 w-8 sm:h-10 sm:w-10 border-b-2 border-gray-700"></div>
+          <RingSpinner size="md" color="gray" />
         </div>
       </StudentLayout>
     );

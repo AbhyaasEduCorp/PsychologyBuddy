@@ -7,7 +7,7 @@ export function RingSpinner({
   className = '' 
 }: { 
   size?: 'sm' | 'md' | 'lg'; 
-  color?: 'blue' | 'white' | 'gray';
+  color?: 'blue' | 'white' | 'gray' | 'cyan';
   className?: string;
 }) {
   const uniqueId = React.useId(); // Cache-busting with unique ID
@@ -20,7 +20,8 @@ export function RingSpinner({
   const colorClasses = {
     blue: 'border-blue-500',
     white: 'border-white',
-    gray: 'border-gray-500'
+    gray: 'border-gray-500',
+    cyan: 'border-cyan-500'
   };
 
   return (
