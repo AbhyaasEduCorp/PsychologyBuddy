@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import useSWR from "swr";
 import {
   Heart,
-  Loader2,
   Music,
   Clock,
   PlayIcon,
@@ -13,6 +12,7 @@ import {
 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import Image from "next/image";
+import { RingSpinner } from '@/components/ui/Spinners';
 
 import { PlayerModal } from "@/src/components/StudentDashboard/SelfHelpTools/Meditation/PlayerModal";
 import InstructionsDisplay from "@/src/components/StudentDashboard/SelfHelpTools/Meditation/InstructionsDisplay";
@@ -29,7 +29,12 @@ export default function MeditationPage() {
   const router = useRouter();
   const { toast } = useToast();
 
-  const [activeTab, setActiveTab] = useState("Recommended");
+  const [activeTab, setActiveTab] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('student-meditation-active-tab') || 'Recommended';
+    }
+    return 'Recommended';
+  });
   const [searchTerm, setSearchTerm] = useState("");
   const [savedItems, setSavedItems] = useState<Set<string>>(new Set());
   const [showSavedOnly, setShowSavedOnly] = useState(false);
@@ -58,6 +63,13 @@ export default function MeditationPage() {
       setSavedItems(initialSavedItems);
     }
   }, [initialSavedItems]);
+
+  // Save active tab to localStorage when it changes
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('student-meditation-active-tab', activeTab);
+    }
+  }, [activeTab]);
 
   // -----------------------------
   // Categories
@@ -283,7 +295,7 @@ export default function MeditationPage() {
           <div className="mt-4 sm:mt-6 md:mt-8">
             {isLoading && !filteredMeditations.length ? (
               <div className="flex flex-col items-center py-16 sm:py-20">
-                <Loader2 className="w-8 h-8 sm:w-10 sm:h-10 animate-spin text-blue-500 mb-3 sm:mb-4" />
+                <RingSpinner size="lg" color="blue" className="mb-3 sm:mb-4" />
                 <p className="text-gray-500 text-sm sm:text-base">Preparing your peace...</p>
               </div>
             ) : filteredMeditations.length > 0 ? (

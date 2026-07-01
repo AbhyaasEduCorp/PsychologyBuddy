@@ -109,6 +109,9 @@ export default function DashboardPage() {
 
             {/* LEFT COLUMN */}
             <div className="space-y-4 sm:space-y-5 md:space-y-6 lg:space-y-8">
+              <Suspense fallback={<div className="h-[120px] bg-gray-100 rounded-xl animate-pulse" />}>
+                <CurrentStreak />
+              </Suspense>
               <DailyMotivation />
 
               <Suspense fallback={<div className="h-[200px] bg-gray-100 rounded-xl animate-pulse" />}>
@@ -119,9 +122,6 @@ export default function DashboardPage() {
                 <BadgeProgress />
               </Suspense>
 
-              <Suspense fallback={<div className="h-[120px] bg-gray-100 rounded-xl animate-pulse" />}>
-                <CurrentStreak />
-              </Suspense>
 
               <Suspense fallback={<div className="h-[220px] bg-gray-100 rounded-xl animate-pulse" />}>
                 <EmotionalPatterns />
@@ -131,13 +131,13 @@ export default function DashboardPage() {
             {/* RIGHT COLUMN */}
             <div className="space-y-6 mt-5">
 
+              <Suspense fallback={<div className="h-[220px] bg-gray-100 rounded-xl animate-pulse" />}>
+                <ExerciseCard />
+              </Suspense>
               <Suspense fallback={<div className="h-[280px] bg-gray-100 rounded-xl animate-pulse" />}>
                 <WeeklyMoodTrends />
               </Suspense>
 
-              <Suspense fallback={<div className="h-[220px] bg-gray-100 rounded-xl animate-pulse" />}>
-                <ExerciseCard />
-              </Suspense>
 
               <Suspense fallback={<div className="h-[200px] bg-gray-100 rounded-xl animate-pulse" />}>
                 <RecentActivity />

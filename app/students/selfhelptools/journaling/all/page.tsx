@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import StudentLayout from "@/src/components/StudentDashboard/Layout/StudentLayout";
+import { RingSpinner } from '@/components/ui/Spinners';
 
 interface WritingJournal {
   id: string;
@@ -21,6 +22,15 @@ interface WritingJournal {
   createdAt: string;
   mood?: string;
 }
+
+const MOODS: Record<string, { label: string; emoji: string }> = {
+  happy:   { label: 'Happy',   emoji: '/Summary/Happy.svg' },
+  sad:     { label: 'Sad',     emoji: '/Summary/Sad.svg' },
+  okay:    { label: 'Okay',    emoji: '/Summary/Okay.svg' },
+  anxious: { label: 'Anxious', emoji: '/Summary/Angry.svg' },
+  tired:   { label: 'Tired',   emoji: '/Summary/Worry.svg' },
+  worried: { label: 'Worried', emoji: '/Summary/Nervous.svg' },
+};
 
 export default function AllJournalsPage() {
   const router = useRouter();
@@ -37,12 +47,26 @@ export default function AllJournalsPage() {
     try {
       setLoading(true);
       const response = await fetch("/api/student/journals/writing");
+
+      if (!response.ok) {
+        const contentType = response.headers.get("content-type");
+        if (contentType && contentType.includes("text/html")) {
+          console.error("API returned HTML instead of JSON. Authentication may have failed.");
+          toast.error("Authentication required. Please log in again.");
+          return;
+        }
+        const errorText = await response.text();
+        console.error("API error:", errorText);
+        toast.error("Failed to fetch journals");
+        return;
+      }
+
       const result = await response.json();
 
       if (result.success) {
         setJournals(result.data);
       } else {
-        toast.error("Failed to fetch journals");
+        toast.error(result.error || "Failed to fetch journals");
       }
     } catch (error) {
       console.error("Error fetching journals:", error);
@@ -61,6 +85,19 @@ export default function AllJournalsPage() {
       const response = await fetch(`/api/student/journals/writing/${id}`, {
         method: "DELETE",
       });
+
+      if (!response.ok) {
+        const contentType = response.headers.get("content-type");
+        if (contentType && contentType.includes("text/html")) {
+          console.error("API returned HTML instead of JSON. Authentication may have failed.");
+          toast.error("Authentication required. Please log in again.");
+          return;
+        }
+        const errorText = await response.text();
+        console.error("API error:", errorText);
+        toast.error("Failed to delete journal");
+        return;
+      }
 
       const result = await response.json();
 
@@ -116,8 +153,8 @@ export default function AllJournalsPage() {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-cyan-50 p-4 md:p-8">
         <div className="max-w-6xl mx-auto">
-          <div className="flex items-center justify-center py-20">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-500"></div>
+          <div className="flex flex-col items-center justify-center py-20">
+            <RingSpinner size="lg" color="cyan" />
             <p className="text-slate-500 mt-4">Loading journals...</p>
           </div>
         </div>
@@ -133,7 +170,7 @@ export default function AllJournalsPage() {
           <div className="mb-8">
             <button
               onClick={() => router.push("/students/selfhelptools/journaling")}
-              className={`flex items-center gap-2 text-[#73829A] hover:text-[#1a9bcc] transition-colors p-2 mb-5`}
+              className={`flex items-center gap-2 text-[#73829A] hover:text-[#1a9bcc] transition-colors p-3 `}
             >
               <ArrowLeft className="w-4 h-5" />
               <span className="text-[13px] sm:text-[16px]">
@@ -187,10 +224,15 @@ export default function AllJournalsPage() {
                   }
                 >
                   <div className="flex items-start justify-between mb-4">
-                    <div className="flex-1">
-                      <h3 className="font-bold text-slate-900 group-hover:text-cyan-600 transition-colors line-clamp-2">
-                        {journal.title || "Untitled Entry"}
-                      </h3>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        {journal.mood && MOODS[journal.mood] && (
+                          <img src={MOODS[journal.mood].emoji} alt={MOODS[journal.mood].label} className="w-6 h-6 flex-shrink-0" />
+                        )}
+                        <h3 className="font-bold text-slate-900 group-hover:text-cyan-600 transition-colors line-clamp-2">
+                          {journal.title || "Untitled Entry"}
+                        </h3>
+                      </div>
                       <div className="flex items-center gap-2 text-xs text-slate-400 mt-2">
                         <Calendar className="w-3.5 h-3.5" />
                         <span>{formatDate(journal.createdAt)}</span>
@@ -213,7 +255,7 @@ export default function AllJournalsPage() {
                           e.stopPropagation();
                           deleteJournal(journal.id);
                         }}
-                        className="opacity-0 group-hover:opacity-100 text-red-500 hover:text-red-600 transition-all p-2 hover:bg-red-50 rounded-xl"
+                        className=" group-hover:opacity-100 text-red-500 hover:text-red-600 transition-all p-2 hover:bg-red-50 rounded-xl"
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>

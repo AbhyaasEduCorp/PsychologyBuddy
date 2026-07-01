@@ -42,5 +42,19 @@ export class MeditationMoodsController {
       } as ApiResponse<null>, { status: 500 });
     }
   }
+
+  static async deleteMeditationMood(req: NextRequest, { params }: any) {
+    try {
+      const { id } = await params;
+      const result = await MeditationMoodService.deleteMeditationMood(id);
+      return NextResponse.json(result);
+    } catch (error) {
+      console.error('Error deleting meditation mood:', error);
+      return NextResponse.json({
+        success: false,
+        error: 'Failed to delete meditation mood'
+      } as ApiResponse<null>, { status: 500 });
+    }
+  }
 }
 

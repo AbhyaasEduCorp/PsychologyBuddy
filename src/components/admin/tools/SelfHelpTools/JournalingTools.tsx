@@ -106,22 +106,6 @@ export default function JournalingTools({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSavingConfig, setIsSavingConfig] = useState(false); // Track when saving is in progress
   
-  // Load color palette setting from localStorage
-  const loadColorPaletteFromStorage = () => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('artColorPaletteEnabled');
-      return saved !== null ? JSON.parse(saved) : true; // Default to true
-    }
-    return true;
-  };
-
-  // Save color palette setting to localStorage
-  const saveColorPaletteToStorage = (enabled: boolean) => {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('artColorPaletteEnabled', JSON.stringify(enabled));
-    }
-  };
-
   // Data states
   const [journalPrompts, setJournalPrompts] = useState<JournalPrompt[]>([]);
   
@@ -139,7 +123,7 @@ export default function JournalingTools({
   
   const [artConfig, setArtConfig] = useState<ArtJournalingConfig>({
     undoRedoEnabled: true,
-    colorPaletteEnabled: loadColorPaletteFromStorage(), // Load from localStorage
+    colorPaletteEnabled: true,
     clearCanvasEnabled: true,
   });
 
@@ -149,6 +133,7 @@ export default function JournalingTools({
   // Form states
   const [journalForm, setJournalForm] = useState({ 
     text: "", 
+    type: "WRITING" as "WRITING" | "ART",
     moodIds: [] as string[]
   });
   const [editingPrompt, setEditingPrompt] = useState<string | null>(null);
@@ -238,13 +223,9 @@ export default function JournalingTools({
           console.log('Setting clearCanvasEnabled to:', data.data.enableClearCanvas);
           newArtConfig.clearCanvasEnabled = data.data.enableClearCanvas;
         }
-        // enableColorPalette is not stored in DB yet, so we don't load it from backend
-        // if (data.data.enableColorPalette !== undefined) {
-        //   newArtConfig.colorPaletteEnabled = data.data.enableColorPalette;
-        // }
-        
-        // Preserve the colorPaletteEnabled setting from localStorage
-        newArtConfig.colorPaletteEnabled = loadColorPaletteFromStorage();
+        if (data.data.enableColorPalette !== undefined) {
+          newArtConfig.colorPaletteEnabled = data.data.enableColorPalette;
+        }
         
         console.log('Final state before setting:', {
           journaling: newJournalingConfig,
@@ -354,6 +335,7 @@ export default function JournalingTools({
       
       const payload: any = {
         text: journalForm.text,
+        type: journalForm.type,
         moodIds: journalForm.moodIds,
       };
 
@@ -385,7 +367,7 @@ export default function JournalingTools({
       const data: ApiResponse<JournalPrompt> = await response.json();
       if (data.success) {
         toast({ title: "Success", description: editingPrompt ? "Journal prompt updated successfully" : "Journal prompt created successfully" });
-        setJournalForm({ text: "", moodIds: [] });
+        setJournalForm({ text: "", type: "WRITING", moodIds: [] });
         setEditingPrompt(null);
         setIsAddJournalingPromptOpen?.(false);
         await fetchJournalPrompts();
@@ -410,6 +392,7 @@ toast({ title: "Error", description: getErrorMessage(data.error) || "Failed to c
   const editJournalPrompt = async (prompt: JournalPrompt) => {
     setJournalForm({
       text: prompt.text,
+      type: (prompt.type as "WRITING" | "ART") || "WRITING",
       moodIds: prompt.moodIds
     });
     setEditingPrompt(prompt.id);
@@ -501,7 +484,7 @@ toast({ title: "Error", description: getErrorMessage(data.error) || "Failed to c
         enableUndo: artConfigToUse.undoRedoEnabled,
         enableRedo: artConfigToUse.undoRedoEnabled,
         enableClearCanvas: artConfigToUse.clearCanvasEnabled,
-        // enableColorPalette: artConfigToUse.colorPaletteEnabled, // Field doesn't exist in database schema
+        enableColorPalette: artConfigToUse.colorPaletteEnabled,
       };
 
       // Add schoolId based on selection
@@ -617,11 +600,6 @@ toast({ title: "Error", description: getErrorMessage(data.error) || "Failed to c
   const handleArtConfigChange = async (key: keyof ArtJournalingConfig, value: boolean) => {
     const newArtConfig = { ...artConfig, [key]: value };
     setArtConfig(newArtConfig);
-    
-    // Save color palette to localStorage if that's what changed
-    if (key === 'colorPaletteEnabled') {
-      saveColorPaletteToStorage(value);
-    }
     
     // Pass all current configs to save
     await saveJournalingConfig(journalingConfig, newArtConfig, audioConfig);
@@ -791,7 +769,7 @@ toast({ title: "Error", description: getErrorMessage(data.error) || "Failed to c
       </Card>
 
       {/* Audio Journaling Configuration */}
-      {journalingConfig.audioEnabled && (
+      {/* {journalingConfig.audioEnabled && (
         <Card>
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-2">
@@ -850,7 +828,7 @@ toast({ title: "Error", description: getErrorMessage(data.error) || "Failed to c
             </div>
           </CardContent>
         </Card>
-      )}
+      )} */}
 
       {/* Art Journaling Configuration */}
       {journalingConfig.artEnabled && (
@@ -967,8 +945,17 @@ toast({ title: "Error", description: getErrorMessage(data.error) || "Failed to c
                 <div className="flex items-center justify-between">
                   <div className="flex gap-1">
                     <Badge variant="secondary" className="text-xs gap-1">
-                      <PenTool className="h-3 w-3" />
-                      Writing
+                      {prompt.type === "ART" ? (
+                        <>
+                          <Palette className="h-3 w-3" />
+                          Art
+                        </>
+                      ) : (
+                        <>
+                          <PenTool className="h-3 w-3" />
+                          Writing
+                        </>
+                      )}
                     </Badge>
                   </div>
                   <div className="flex items-center gap-2">
@@ -991,7 +978,7 @@ toast({ title: "Error", description: getErrorMessage(data.error) || "Failed to c
 <Dialog open={isAddJournalingPromptOpen} onOpenChange={(open) => {
         if (!open) {
           setEditingPrompt(null);
-          setJournalForm({ text: "", moodIds: [] });
+          setJournalForm({ text: "", type: "WRITING", moodIds: [] });
         }
         setIsAddJournalingPromptOpen?.(open);
       }}>
@@ -1009,6 +996,21 @@ toast({ title: "Error", description: getErrorMessage(data.error) || "Failed to c
           onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setJournalForm((prev: any) => ({ ...prev, text: e.target.value }))}
           rows={3}
         />
+      </div>
+      <div className="grid gap-2">
+        <Label>Prompt Type <span className="text-red-500">*</span></Label>
+        <Select 
+          value={journalForm.type} 
+          onValueChange={(value: "WRITING" | "ART") => setJournalForm((prev: any) => ({ ...prev, type: value }))}
+        >
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="WRITING">Writing Journal</SelectItem>
+            <SelectItem value="ART">Art Journal</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
       <div className="grid gap-2">
         <Label>Mood(s) <span className="text-red-500">*</span></Label>

@@ -6,6 +6,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Star, Clock, User, Bookmark, BookmarkCheck, ArrowLeft, CheckCircle2, Edit2, BookOpen, Brain } from 'lucide-react';
+import { RingSpinner } from '@/components/ui/Spinners';
+
+
 
 interface ContentSection {
   id: string;
@@ -101,13 +104,14 @@ export const StudentArticleView = ({ articleId }: { articleId: string }) => {
       console.log('🔍 Fetching blocks for article:', articleId);
       
       // Fetch all block types from their dedicated endpoints
-      const [sectionsRes, bulletListsRes, imagesRes, takeawaysRes, reflectionsRes, linksRes] = await Promise.all([
+      const [sectionsRes, bulletListsRes, imagesRes, takeawaysRes, reflectionsRes, linksRes, richContentRes] = await Promise.all([
         fetch(`/api/articles/${articleId}/blocks/sections`),
         fetch(`/api/articles/${articleId}/blocks/bullet-lists`),
         fetch(`/api/articles/${articleId}/blocks/images`),
         fetch(`/api/articles/${articleId}/blocks/key-takeaways`),
         fetch(`/api/articles/${articleId}/blocks/reflections`),
-        fetch(`/api/articles/${articleId}/blocks/links`)
+        fetch(`/api/articles/${articleId}/blocks/links`),
+        fetch(`/api/articles/${articleId}/blocks/rich-content`)
       ]);
 
       const allBlocks = [];
@@ -175,6 +179,18 @@ export const StudentArticleView = ({ articleId }: { articleId: string }) => {
         allBlocks.push(...linksArray.map((link: any) => ({
           ...link,
           type: 'link'
+        })));
+      }
+
+      // Process rich-content
+      if (richContentRes.ok) {
+        const richContentData = await richContentRes.json();
+        const richContentArray = richContentData.data || richContentData;
+        console.log('📝 Rich content loaded:', richContentArray.length, richContentArray);
+        allBlocks.push(...richContentArray.map((rc: any) => ({
+          ...rc,
+          type: 'rich-content',
+          items: Array.isArray(rc.items) ? rc.items : [],
         })));
       }
 
@@ -379,9 +395,12 @@ export const StudentArticleView = ({ articleId }: { articleId: string }) => {
     switch (block.type) {
       case 'section':
         return (
-          <div key={block.id} className="bg-white rounded-[20px] sm:rounded-[24px] lg:rounded-[32px] shadow-sm p-4 sm:p-6 lg:p-8">
+          <div key={block.id} className="bg-white rounded-[20px] sm:rounded-[24px] lg:rounded-[32px] shadow-sm p-4 sm:p-6 lg:p-8 space-y-2">
             {block.title && (
-              <h2 className="text-[16px] sm:text-[18px] lg:text-[20px] font-bold text-[#2F3D43] mb-3 sm:mb-4">{block.title}</h2>
+              <h2 className="text-[16px] sm:text-[18px] lg:text-[20px] font-bold text-[#2F3D43]">{block.title}</h2>
+            )}
+            {block.subtitle && (
+              <p className="text-[14px] sm:text-[15px] lg:text-[16px] text-[#655E61] font-semibold">{block.subtitle}</p>
             )}
             {block.content && (
               <p className="text-[#655E61] leading-relaxed text-[14px] sm:text-[15px] lg:text-[16px]">{block.content}</p>
@@ -451,11 +470,95 @@ export const StudentArticleView = ({ articleId }: { articleId: string }) => {
               <div className="w-8 h-8 sm:w-10 sm:h-10 bg-purple-500 rounded-full flex items-center justify-center">
                 <Edit2 className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
               </div>
-              <h3 className="text-lg sm:text-xl font-bold text-gray-900">Reflect & Think</h3>
+              <h3 className="text-lg sm:text-xl font-bold text-gray-900">{block.heading || 'Reflect & Think'}</h3>
             </div>
             <div className="bg-white/70 rounded-lg p-4 sm:p-6 border border-purple-100">
               <p className="text-[#655E61] text-[14px] sm:text-[15px] lg:text-[16px] leading-relaxed italic text-center">{block.content}</p>
             </div>
+          </div>
+        );
+
+      case 'link':
+        return (
+          <div key={block.id} className="bg-white rounded-[20px] sm:rounded-[24px] lg:rounded-[32px] shadow-sm p-4 sm:p-6 lg:p-8">
+            <a
+              href={block.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-start gap-3 sm:gap-4 no-underline"
+            >
+              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-blue-50 flex items-center justify-center shrink-0">
+                <svg className="w-5 h-5 sm:w-6 sm:h-6 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.172 13.828a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.102 1.101" />
+                </svg>
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className="text-[15px] sm:text-[16px] lg:text-[17px] font-semibold text-[#2F3D43] truncate">
+                    {block.title}
+                  </span>
+                  <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-1L10 14" />
+                  </svg>
+                </div>
+                {block.description && (
+                  <p className="text-[13px] sm:text-[14px] text-[#655E61] mt-1">{block.description}</p>
+                )}
+                <p className="text-[12px] sm:text-[13px] text-blue-500 truncate mt-1">{block.url}</p>
+              </div>
+            </a>
+          </div>
+        );
+
+      case 'rich-content':
+        return (
+          <div key={block.id} className="bg-white rounded-[20px] sm:rounded-[24px] lg:rounded-[32px] shadow-sm p-4 sm:p-6 lg:p-8 space-y-3">
+            {block.items && block.items.length > 0 ? (
+              block.items.map((item: any, idx: number) => (
+                <div key={item.id || idx}>
+                  {item.type === 'heading' && item.text && (
+                    <h2 className="text-[18px] sm:text-[20px] lg:text-[22px] font-bold text-[#2F3D43]">{item.text}</h2>
+                  )}
+                  {item.type === 'subheading' && item.text && (
+                    <p className="text-[14px] sm:text-[15px] lg:text-[16px] text-[#655E61] font-semibold">{item.text}</p>
+                  )}
+                  {item.type === 'paragraph' && item.text && (
+                    <p className="text-[#655E61] leading-relaxed text-[14px] sm:text-[15px] lg:text-[16px]">{item.text}</p>
+                  )}
+                  {item.type === 'bullets' && item.bullets && item.bullets.length > 0 && (
+                    <ul className="list-disc list-inside space-y-1.5 text-[#655E61] text-[14px] sm:text-[15px] lg:text-[16px]">
+                      {item.bullets.map((b: string, i: number) => <li key={i}>{b}</li>)}
+                    </ul>
+                  )}
+                  {item.type === 'image' && item.src && (
+                    <img src={item.src} alt={item.altText || ''} className="w-full h-auto rounded-lg" />
+                  )}
+                  {item.type === 'link' && item.url && (
+                    <a href={item.url} target="_blank" rel="noopener noreferrer" className="flex items-start gap-3 p-3 border rounded-lg no-underline hover:bg-gray-50 transition-colors">
+                      <div className="w-9 h-9 rounded-lg bg-blue-50 flex items-center justify-center shrink-0">
+                        <svg className="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.172 13.828a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.102 1.101" />
+                        </svg>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="text-[14px] sm:text-[15px] font-semibold text-[#2F3D43] truncate">{item.title}</span>
+                          <svg className="w-3.5 h-3.5 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-1L10 14" />
+                          </svg>
+                        </div>
+                        {item.description && <p className="text-[13px] text-[#655E61] mt-1">{item.description}</p>}
+                        <p className="text-[12px] text-blue-500 truncate mt-1">{item.url}</p>
+                      </div>
+                    </a>
+                  )}
+                </div>
+              ))
+            ) : (
+              <p className="text-muted-foreground text-sm">No content</p>
+            )}
           </div>
         );
 
@@ -468,9 +571,9 @@ export const StudentArticleView = ({ articleId }: { articleId: string }) => {
     return (
       <div className="flex flex-col min-h-screen">
         <div className="flex-1 flex items-center justify-center">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-            <p className="text-muted-foreground">Loading article...</p>
+          <div className="flex flex-col items-center justify-center py-12">
+            <RingSpinner size="lg" color="blue" />
+            <p className="mt-4 text-[#686D70] text-lg">Loading article...</p>
           </div>
         </div>
       </div>
@@ -504,10 +607,10 @@ export const StudentArticleView = ({ articleId }: { articleId: string }) => {
   return (
     <div className="min-h-screen bg-gray-50">
       
-      <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-6 lg:py-14">
+      <div className="max-w-6xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-6 lg:py-10">
         <button
                     onClick={() => router.push('/students/content/library')}
-                    className="flex cursor-pointer items-center gap-2 text-gray-500 hover:text-gray-700 mb-4 sm:mb-6 lg:mb-9 transition-colors"
+                    className="flex cursor-pointer items-center gap-2 text-gray-500 hover:text-gray-700 mb-4 sm:mb-6 lg:mb-4 transition-colors"
                   >
                     <ArrowLeft size={14} className="sm:w-[16px] sm:h-[16px] lg:w-[18px] lg:h-[18px]" />
                     <span className="text-[12px] sm:text-[14px] lg:text-[16px]">Back to Library</span>
@@ -565,7 +668,7 @@ export const StudentArticleView = ({ articleId }: { articleId: string }) => {
         </div>
 
         {/* Article Content */}
-        <div className="space-y-4 sm:space-y-6 lg:space-y-8">
+        <div className="space-y-4 sm:space-y-5 lg:space-y-8">
           {blocks
             .sort((a, b) => a.order - b.order)
             .map((block) => renderBlock(block))}

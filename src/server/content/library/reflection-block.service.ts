@@ -73,9 +73,9 @@ export class ReflectionBlockService {
       const block = await prisma.reflectionBlock.update({
         where: { id: blockId },
         data: {
-          ...(data.heading && { heading: data.heading }),
-          ...(data.content && { content: data.content }),
-          ...(data.prompt && { prompt: data.prompt }),
+          ...(data.heading !== undefined && { heading: data.heading }),
+          ...(data.content !== undefined && { content: data.content }),
+          ...(data.prompt !== undefined && { prompt: data.prompt }),
           ...(data.order !== undefined && { order: data.order }),
         },
       });

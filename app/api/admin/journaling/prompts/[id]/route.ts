@@ -3,15 +3,15 @@ import { journalingAdminController } from '@/src/server/controllers/journaling.a
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  return journalingAdminController.updatePrompt(req, { params: { id } });
+  return journalingAdminController.updatePrompt(req, { params: Promise.resolve({ id }) });
 }
 
 export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  return journalingAdminController.updatePrompt(req, { params: { id } });
+  return journalingAdminController.updatePrompt(req, { params: Promise.resolve({ id }) });
 }
 
 export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  return journalingAdminController.deletePrompt(req, { params: { id } });
+  return journalingAdminController.deletePrompt(req, { params: Promise.resolve({ id }) });
 }

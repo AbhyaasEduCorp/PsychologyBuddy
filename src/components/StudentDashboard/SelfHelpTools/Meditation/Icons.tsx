@@ -10,7 +10,9 @@ import {
   Volume2,
   Headphones,
   Music,
-  Repeat
+  Repeat,
+  Maximize2,
+  Minimize2
 } from 'lucide-react';
 
 export const Icons = {
@@ -23,5 +25,7 @@ export const Icons = {
   Headphones: (props: React.SVGProps<SVGSVGElement>) => <Headphones {...props} />,
   Music: (props: React.SVGProps<SVGSVGElement>) => <Music {...props} />,
   Repeat: (props: React.SVGProps<SVGSVGElement>) => <Repeat {...props} />,
+  Maximize2: (props: React.SVGProps<SVGSVGElement>) => <Maximize2 {...props} />,
+  Minimize2: (props: React.SVGProps<SVGSVGElement>) => <Minimize2 {...props} />,
 };
 

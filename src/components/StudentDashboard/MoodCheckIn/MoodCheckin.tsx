@@ -23,6 +23,7 @@ import BackToDashboard from "../Layout/BackToDashboard";
 import { useServerAuth } from "@/src/hooks";
 
 import { useToast } from '@/components/ui/use-toast';
+import { RingSpinner } from '@/components/ui/Spinners';
 
 
 
@@ -522,9 +523,9 @@ export default function MoodCheckIn() {
 
           <div className="bg-white rounded-[24px] shadow-sm max-w-7xl mx-auto p-5 sm:p-8 lg:p-12 xl:p-16">
 
-            <div className="text-center py-12">
+            <div className="flex flex-col items-center justify-center py-12">
 
-              <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-[#1B9EE0]"></div>
+              <RingSpinner size="lg" color="blue" />
 
               <p className="mt-4 text-[#686D70] text-lg">Loading...</p>
 

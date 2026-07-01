@@ -13,7 +13,12 @@ import { ApiResponse } from "./SelfHelpTools/types";
 export default function SelfHelpTools() {
   const { user, loading: authLoading } = useAuth();
   const { toast } = useToast();
-  const [activeTab, setActiveTab] = useState("journaling");
+  const [activeTab, setActiveTab] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('admin-selfhelp-active-tab') || 'journaling';
+    }
+    return 'journaling';
+  });
   const [searchQuery, setSearchQuery] = useState("");
   
   
@@ -56,6 +61,13 @@ export default function SelfHelpTools() {
       localStorage.setItem('admin-selected-school', selectedSchool);
     }
   }, [selectedSchool]);
+  
+  // Save active tab to localStorage when it changes
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('admin-selfhelp-active-tab', activeTab);
+    }
+  }, [activeTab]);
   
   // Load schools on component mount and when authentication is complete
   useEffect(() => {

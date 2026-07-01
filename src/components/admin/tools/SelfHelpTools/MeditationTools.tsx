@@ -112,6 +112,8 @@ export default function MeditationTools({
   const [meditationCategoriesMap, setMeditationCategoriesMap] = useState<{
     [key: string]: string;
   }>({});
+  const [meditationCategoryObjects, setMeditationCategoryObjects] = useState<any[]>([]);
+  const [editingCategoryId, setEditingCategoryId] = useState<string | null>(null);
   const [meditationGoalsMap, setMeditationGoalsMap] = useState<{
     [key: string]: string;
   }>({});
@@ -241,6 +243,7 @@ export default function MeditationTools({
         });
         setMeditationCategories(categoryNames);
         setMeditationCategoriesMap(categoryMap);
+        setMeditationCategoryObjects(data.data);
       }
     } catch (error) {
       console.error("Failed to fetch meditation categories:", error);
@@ -1653,7 +1656,7 @@ const handleAudioUpload = async (
                         {moods.map((mood) => (
                           <div
                             key={mood.id}
-                            className="flex items-center gap-2 px-2 py-1.5 rounded cursor-pointer hover:bg-[#F1F5F9]"
+                            className="flex items-center gap-2 px-2 py-1.5 rounded cursor-pointer hover:bg-[#F1F5F9] group"
                             onClick={() => {
                               if (
                                 meditationForm.supportedMoods.includes(mood.name)
@@ -1682,7 +1685,27 @@ const handleAudioUpload = async (
                                 <Check className="h-3 w-3 text-[#FFFFFF]" />
                               )}
                             </div>
-                            <span className="text-sm">{mood.name}</span>
+                            <span className="text-sm flex-1">{mood.name}</span>
+                            <button
+                              className="opacity-0 group-hover:opacity-100 text-destructive hover:text-destructive transition-opacity"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (!confirm(`Delete mood "${mood.name}"?`)) return;
+                                fetch(`/api/labels/moods/${mood.id}`, { method: 'DELETE' })
+                                  .then(res => res.json())
+                                  .then(data => {
+                                    if (data.success) {
+                                      toast({ title: "Success", description: "Mood deleted successfully" });
+                                      fetchLabels();
+                                    } else {
+                                      toast({ title: "Error", description: data.error || data.message || "Failed to delete mood", variant: "destructive" });
+                                    }
+                                  })
+                                  .catch(() => toast({ title: "Error", description: "Failed to delete mood", variant: "destructive" }));
+                              }}
+                            >
+                              <X className="h-3.5 w-3.5" />
+                            </button>
                           </div>
                         ))}
                         <div className="border-t pt-2 mt-2">
@@ -1697,18 +1720,30 @@ const handleAudioUpload = async (
                             <Button
                               size="sm"
                               className="h-8"
-                              onClick={(e) => {
+                              onClick={async (e) => {
                                 e.stopPropagation();
                                 if (
                                   newMood.trim() &&
                                   !moods.some((mood: any) => mood.name === newMood.trim())
                                 ) {
-                                  setMoods((prev) => [
-                                    ...prev,
-                                    { name: newMood.trim(), id: Date.now().toString() },
-                                  ]);
-                                  toast({ title: "Mood Added" });
-                                  setNewMood("");
+                                  try {
+                                    const headers = getAuthHeaders();
+                                    const response = await fetch('/api/labels/moods', {
+                                      method: 'POST',
+                                      headers,
+                                      body: JSON.stringify({ name: newMood.trim(), status: 'ACTIVE' }),
+                                    });
+                                    const result = await response.json();
+                                    if (result.success) {
+                                      toast({ title: "Mood Added" });
+                                      setNewMood("");
+                                      await fetchLabels();
+                                    } else {
+                                      toast({ title: "Error", description: result.error || "Failed to create mood", variant: "destructive" });
+                                    }
+                                  } catch (error) {
+                                    toast({ title: "Error", description: "Failed to create mood", variant: "destructive" });
+                                  }
                                 }
                               }}
                             >
@@ -1754,7 +1789,7 @@ const handleAudioUpload = async (
                         {goals.map((goal) => (
                           <div
                             key={goal.id}
-                            className="flex items-center gap-2 px-2 py-1.5 rounded cursor-pointer hover:bg-[#F1F5F9]"
+                            className="flex items-center gap-2 px-2 py-1.5 rounded cursor-pointer hover:bg-[#F1F5F9] group"
                             onClick={() => {
                               if (
                                 meditationForm.supportedGoals.includes(goal.name)
@@ -1783,7 +1818,27 @@ const handleAudioUpload = async (
                                 <Check className="h-3 w-3 text-[#FFFFFF]" />
                               )}
                             </div>
-                            <span className="text-sm">{goal.name}</span>
+                            <span className="text-sm flex-1">{goal.name}</span>
+                            <button
+                              className="opacity-0 group-hover:opacity-100 text-destructive hover:text-destructive transition-opacity"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (!confirm(`Delete goal "${goal.name}"?`)) return;
+                                fetch(`/api/labels/goals/${goal.id}`, { method: 'DELETE' })
+                                  .then(res => res.json())
+                                  .then(data => {
+                                    if (data.success) {
+                                      toast({ title: "Success", description: "Goal deleted successfully" });
+                                      fetchLabels();
+                                    } else {
+                                      toast({ title: "Error", description: data.error || data.message || "Failed to delete goal", variant: "destructive" });
+                                    }
+                                  })
+                                  .catch(() => toast({ title: "Error", description: "Failed to delete goal", variant: "destructive" }));
+                              }}
+                            >
+                              <X className="h-3.5 w-3.5" />
+                            </button>
                           </div>
                         ))}
                         <div className="border-t pt-2 mt-2">
@@ -1798,18 +1853,30 @@ const handleAudioUpload = async (
                             <Button
                               size="sm"
                               className="h-8"
-                              onClick={(e) => {
+                              onClick={async (e) => {
                                 e.stopPropagation();
                                 if (
                                   newGoal.trim() &&
                                   !goals.some((goal: any) => goal.name === newGoal.trim())
                                 ) {
-                                  setGoals((prev) => [
-                                    ...prev,
-                                    { name: newGoal.trim(), id: Date.now().toString() },
-                                  ]);
-                                  toast({ title: "Goal Added" });
-                                  setNewGoal("");
+                                  try {
+                                    const headers = getAuthHeaders();
+                                    const response = await fetch('/api/labels/goals', {
+                                      method: 'POST',
+                                      headers,
+                                      body: JSON.stringify({ name: newGoal.trim(), status: 'ACTIVE' }),
+                                    });
+                                    const result = await response.json();
+                                    if (result.success) {
+                                      toast({ title: "Goal Added" });
+                                      setNewGoal("");
+                                      await fetchLabels();
+                                    } else {
+                                      toast({ title: "Error", description: result.error || "Failed to create goal", variant: "destructive" });
+                                    }
+                                  } catch (error) {
+                                    toast({ title: "Error", description: "Failed to create goal", variant: "destructive" });
+                                  }
                                 }
                               }}
                             >
@@ -2194,7 +2261,7 @@ const handleAudioUpload = async (
                         {moods.map((mood) => (
                           <div
                             key={mood.id}
-                            className="flex items-center gap-2 px-2 py-1.5 rounded cursor-pointer hover:bg-muted"
+                            className="flex items-center gap-2 px-2 py-1.5 rounded cursor-pointer hover:bg-muted group"
                             onClick={() => {
                               if (
                                 meditationForm.supportedMoods.includes(mood.name)
@@ -2223,7 +2290,27 @@ const handleAudioUpload = async (
                                 <Check className="h-3 w-3 text-[#FFFFFF]" />
                               )}
                             </div>
-                            <span className="text-sm">{mood.name}</span>
+                            <span className="text-sm flex-1">{mood.name}</span>
+                            <button
+                              className="opacity-0 group-hover:opacity-100 text-destructive hover:text-destructive transition-opacity"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (!confirm(`Delete mood "${mood.name}"?`)) return;
+                                fetch(`/api/labels/moods/${mood.id}`, { method: 'DELETE' })
+                                  .then(res => res.json())
+                                  .then(data => {
+                                    if (data.success) {
+                                      toast({ title: "Success", description: "Mood deleted successfully" });
+                                      fetchLabels();
+                                    } else {
+                                      toast({ title: "Error", description: data.error || data.message || "Failed to delete mood", variant: "destructive" });
+                                    }
+                                  })
+                                  .catch(() => toast({ title: "Error", description: "Failed to delete mood", variant: "destructive" }));
+                              }}
+                            >
+                              <X className="h-3.5 w-3.5" />
+                            </button>
                           </div>
                         ))}
                         <div className="border-t pt-2 mt-2">
@@ -2238,18 +2325,30 @@ const handleAudioUpload = async (
                             <Button
                               size="sm"
                               className="h-8"
-                              onClick={(e) => {
+                              onClick={async (e) => {
                                 e.stopPropagation();
                                 if (
                                   newMood.trim() &&
                                   !moods.some((mood: any) => mood.name === newMood.trim())
                                 ) {
-                                  setMoods((prev) => [
-                                    ...prev,
-                                    { name: newMood.trim(), id: Date.now().toString() },
-                                  ]);
-                                  toast({ title: "Mood Added" });
-                                  setNewMood("");
+                                  try {
+                                    const headers = getAuthHeaders();
+                                    const response = await fetch('/api/labels/moods', {
+                                      method: 'POST',
+                                      headers,
+                                      body: JSON.stringify({ name: newMood.trim(), status: 'ACTIVE' }),
+                                    });
+                                    const result = await response.json();
+                                    if (result.success) {
+                                      toast({ title: "Mood Added" });
+                                      setNewMood("");
+                                      await fetchLabels();
+                                    } else {
+                                      toast({ title: "Error", description: result.error || "Failed to create mood", variant: "destructive" });
+                                    }
+                                  } catch (error) {
+                                    toast({ title: "Error", description: "Failed to create mood", variant: "destructive" });
+                                  }
                                 }
                               }}
                             >
@@ -2295,7 +2394,7 @@ const handleAudioUpload = async (
                         {goals.map((goal) => (
                           <div
                             key={goal.id}
-                            className="flex items-center gap-2 px-2 py-1.5 rounded cursor-pointer hover:bg-muted"
+                            className="flex items-center gap-2 px-2 py-1.5 rounded cursor-pointer hover:bg-muted group"
                             onClick={() => {
                               if (
                                 meditationForm.supportedGoals.includes(goal.name)
@@ -2324,7 +2423,27 @@ const handleAudioUpload = async (
                                 <Check className="h-3 w-3 text-[#FFFFFF]" />
                               )}
                             </div>
-                            <span className="text-sm">{goal.name}</span>
+                            <span className="text-sm flex-1">{goal.name}</span>
+                            <button
+                              className="opacity-0 group-hover:opacity-100 text-destructive hover:text-destructive transition-opacity"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (!confirm(`Delete goal "${goal.name}"?`)) return;
+                                fetch(`/api/labels/goals/${goal.id}`, { method: 'DELETE' })
+                                  .then(res => res.json())
+                                  .then(data => {
+                                    if (data.success) {
+                                      toast({ title: "Success", description: "Goal deleted successfully" });
+                                      fetchLabels();
+                                    } else {
+                                      toast({ title: "Error", description: data.error || data.message || "Failed to delete goal", variant: "destructive" });
+                                    }
+                                  })
+                                  .catch(() => toast({ title: "Error", description: "Failed to delete goal", variant: "destructive" }));
+                              }}
+                            >
+                              <X className="h-3.5 w-3.5" />
+                            </button>
                           </div>
                         ))}
                         <div className="border-t pt-2 mt-2">
@@ -2339,18 +2458,30 @@ const handleAudioUpload = async (
                             <Button
                               size="sm"
                               className="h-8"
-                              onClick={(e) => {
+                              onClick={async (e) => {
                                 e.stopPropagation();
                                 if (
                                   newGoal.trim() &&
                                   !goals.some((goal: any) => goal.name === newGoal.trim())
                                 ) {
-                                  setGoals((prev) => [
-                                    ...prev,
-                                    { name: newGoal.trim(), id: Date.now().toString() },
-                                  ]);
-                                  toast({ title: "Goal Added" });
-                                  setNewGoal("");
+                                  try {
+                                    const headers = getAuthHeaders();
+                                    const response = await fetch('/api/labels/goals', {
+                                      method: 'POST',
+                                      headers,
+                                      body: JSON.stringify({ name: newGoal.trim(), status: 'ACTIVE' }),
+                                    });
+                                    const result = await response.json();
+                                    if (result.success) {
+                                      toast({ title: "Goal Added" });
+                                      setNewGoal("");
+                                      await fetchLabels();
+                                    } else {
+                                      toast({ title: "Error", description: result.error || "Failed to create goal", variant: "destructive" });
+                                    }
+                                  } catch (error) {
+                                    toast({ title: "Error", description: "Failed to create goal", variant: "destructive" });
+                                  }
                                 }
                               }}
                             >
@@ -2510,16 +2641,22 @@ const handleAudioUpload = async (
         </DialogContent>
       </Dialog>
 
-      {/* Add Meditation Category Modal */}
+      {/* Add/Edit Meditation Category Modal */}
       <Dialog
         open={isAddMeditationCategoryModalOpen}
-        onOpenChange={setIsAddMeditationCategoryModalOpen}
+        onOpenChange={(open) => {
+          if (!open) {
+            setEditingCategoryId(null);
+            setCategoryForm({ name: "", description: "", icon: "", color: "#3B82F6", status: "ACTIVE" });
+          }
+          setIsAddMeditationCategoryModalOpen?.(open);
+        }}
       >
         <DialogContent className="sm:max-w-md bg-[#FFFFFF]" onInteractOutside={(e) => e.preventDefault()}>
           <DialogHeader>
-            <DialogTitle>Add Meditation Category</DialogTitle>
+            <DialogTitle>{editingCategoryId ? "Edit" : "Add"} Meditation Category</DialogTitle>
             <DialogDescription className="text-[#65758b]">
-              Create a new category for organizing meditation resources.
+              {editingCategoryId ? "Edit the category details." : "Create a new category for organizing meditation resources."}
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
@@ -2550,20 +2687,108 @@ const handleAudioUpload = async (
                 </SelectContent>
               </Select>
             </div>
+            {meditationCategoryObjects.length > 0 && (
+              <div className="grid gap-2">
+                <Label>Existing Categories</Label>
+                <div className="space-y-2 max-h-40 overflow-y-auto">
+                  {meditationCategoryObjects.map((cat) => (
+                    <div key={cat.id} className="flex items-center justify-between p-2 rounded-lg border border-border">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium">{cat.name}</span>
+                        <Badge variant={cat.status === "ACTIVE" ? "default" : "secondary"} className="text-xs">
+                          {cat.status === "ACTIVE" ? "Active" : "Inactive"}
+                        </Badge>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7"
+                          onClick={() => {
+                            setEditingCategoryId(cat.id);
+                            setCategoryForm({
+                              name: cat.name,
+                              description: cat.description || "",
+                              icon: cat.icon || "",
+                              color: cat.color || "#3B82F6",
+                              status: cat.status || "ACTIVE",
+                            });
+                          }}
+                        >
+                          <Edit className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 text-destructive hover:text-destructive"
+                          onClick={async () => {
+                            if (!confirm(`Delete category "${cat.name}"?`)) return;
+                            try {
+                              const response = await fetch(`/api/admin/meditation/categories/${cat.id}`, {
+                                method: 'DELETE',
+                                headers: { 'Content-Type': 'application/json', 'x-user-id': user?.id || '' },
+                              });
+                              const data = await response.json();
+                              if (data.success) {
+                                toast({ title: "Success", description: "Category deleted successfully" });
+                                await fetchMeditationCategories();
+                              } else {
+                                toast({ title: "Error", description: data.message || data.error || "Failed to delete category", variant: "destructive" });
+                              }
+                            } catch (error) {
+                              toast({ title: "Error", description: "Failed to delete category", variant: "destructive" });
+                            }
+                          }}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
           <DialogFooter>
             <Button
               variant="outline"
-              onClick={() => setIsAddMeditationCategoryModalOpen?.(false)}
+              onClick={() => {
+                setEditingCategoryId(null);
+                setCategoryForm({ name: "", description: "", icon: "", color: "#3B82F6", status: "ACTIVE" });
+                setIsAddMeditationCategoryModalOpen?.(false);
+              }}
             >
               Cancel
             </Button>
             <LoadingButton 
-              onClick={createMeditationCategory}
+              onClick={editingCategoryId ? async () => {
+                setIsSubmitting(true);
+                try {
+                  const response = await fetch(`/api/admin/meditation/categories/${editingCategoryId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json', 'x-user-id': user?.id || '' },
+                    body: JSON.stringify({ id: editingCategoryId, ...categoryForm }),
+                  });
+                  const data = await response.json();
+                  if (data.success) {
+                    toast({ title: "Success", description: "Category updated successfully" });
+                    setCategoryForm({ name: "", description: "", icon: "", color: "#3B82F6", status: "ACTIVE" });
+                    setEditingCategoryId(null);
+                    setIsAddMeditationCategoryModalOpen?.(false);
+                    await fetchMeditationCategories();
+                  } else {
+                    toast({ title: "Error", description: data.error || "Failed to update category", variant: "destructive" });
+                  }
+                } catch (error) {
+                  toast({ title: "Error", description: "Failed to update category", variant: "destructive" });
+                } finally {
+                  setIsSubmitting(false);
+                }
+              } : createMeditationCategory}
               disabled={isSubmitting}
-              loadingText="Creating..."
+              loadingText={editingCategoryId ? "Updating..." : "Creating..."}
             >
-              Create Category
+              {editingCategoryId ? "Update Category" : "Create Category"}
             </LoadingButton>
           </DialogFooter>
         </DialogContent>
