@@ -94,7 +94,7 @@ export function OTPLoginForm({ onBack }: OTPLoginFormProps) {
             <Input
               id="phoneNumber"
               type="tel"
-              placeholder="8978009953"
+              placeholder="Mobile No."
               value={phoneNumber}
               onChange={handlePhoneChange}
               disabled={loading}
